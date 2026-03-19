@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.justkay.therma</string>
+    <key>CFBundleName</key>
+    <string>Therma</string>
+    <key>CFBundleDisplayName</key>
+    <string>Therma</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>Therma</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>NSUserNotificationAlertStyle</key>
+    <string>banner</string>
+    <!-- Sparkle auto-updater -->
+    <key>SUFeedURL</key>
+    <string>https://yourusername.github.io/therma/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>REPLACE_WITH_YOUR_SPARKLE_PUBLIC_KEY</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Therma uses administrator privileges once to enable password-free cleaning via Touch ID.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Therma uses Touch ID to authenticate before cleaning system memory.</string>
+</dict>
+</plist>

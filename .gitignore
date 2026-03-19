@@ -1,0 +1,36 @@
+# Swift Package Manager
+.build/
+/Packages/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/
+.swiftpm/xcode/
+.swiftpm/security/
+
+# IDE / Editor
+.idea/
+.vscode/
+
+# Temporary files
+*.swp
+*~
+.DS_Store
+
+# Build artifacts
+*.app/
+*.dmg
+*.zip
+
+# Code review / AI tooling output
+CODE_REVIEW_REPORT.md
+code-reviewer/
+design/
+
+# Claude Code / AI assistant state
+.claude/
+.codex-home/
+.cache/
