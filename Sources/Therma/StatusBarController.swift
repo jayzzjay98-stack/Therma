@@ -226,6 +226,9 @@ final class StatusBarController: NSObject, NSWindowDelegate {
             let hostingController = NSHostingController(
                 rootView: SettingsView(
                     preferences: context.preferences,
+                    ramMonitor: context.ramMonitor,
+                    cpuMonitor: context.cpuMonitor,
+                    systemMetricsMonitor: context.systemMetricsMonitor,
                     updateManager: context.updateManager,
                     closeAction: { [weak self] in self?.settingsWindow?.close() }
                 )

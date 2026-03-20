@@ -9,12 +9,26 @@ struct NetworkThroughput {
 enum ThroughputFormatter {
     static func string(for bytesPerSecond: Double?) -> String {
         guard let bytesPerSecond, bytesPerSecond.isFinite, bytesPerSecond >= 0 else { return "--" }
-        return String(format: "%.2f MB/s", bytesPerSecond / 1_048_576)
+        switch bytesPerSecond {
+        case ..<1_024:
+            return String(format: "%.0f B/s", bytesPerSecond)
+        case ..<1_048_576:
+            return String(format: "%.1f KB/s", bytesPerSecond / 1_024)
+        default:
+            return String(format: "%.2f MB/s", bytesPerSecond / 1_048_576)
+        }
     }
 
     static func compactString(for bytesPerSecond: Double?) -> String {
         guard let bytesPerSecond, bytesPerSecond.isFinite, bytesPerSecond >= 0 else { return "--" }
-        return String(format: "%.2fM", bytesPerSecond / 1_048_576)
+        switch bytesPerSecond {
+        case ..<1_024:
+            return String(format: "%.0fB", bytesPerSecond)
+        case ..<1_048_576:
+            return String(format: "%.1fK", bytesPerSecond / 1_024)
+        default:
+            return String(format: "%.2fM", bytesPerSecond / 1_048_576)
+        }
     }
 }
 
@@ -152,7 +166,7 @@ private final class NetworkThroughputProvider {
         defer { previousSnapshot = current }
 
         guard let previousSnapshot else {
-            return NetworkThroughput(downloadBytesPerSecond: nil, uploadBytesPerSecond: nil)
+            return NetworkThroughput(downloadBytesPerSecond: 0, uploadBytesPerSecond: 0)
         }
 
         let elapsed = current.timestamp.timeIntervalSince(previousSnapshot.timestamp)
