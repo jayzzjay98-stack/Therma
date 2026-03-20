@@ -70,6 +70,8 @@ private enum HIDTemperatureBridge {
 
 final class CPUSensorProvider {
     private let snapshotBuilder: CPUSnapshotBuilder
+    private var cachedBatteryCycleCount: Int?
+    private var cycleCountRead = false
 
     init(snapshotBuilder: CPUSnapshotBuilder = CPUSnapshotBuilder()) {
         self.snapshotBuilder = snapshotBuilder
@@ -77,10 +79,13 @@ final class CPUSensorProvider {
 
     func fetchSnapshot() -> CPUSnapshot {
         let rawReadings = readSensors()
-        let batteryCycleCount = readBatteryCycleCount()
+        if !cycleCountRead {
+            cachedBatteryCycleCount = readBatteryCycleCount()
+            cycleCountRead = true
+        }
         return snapshotBuilder.buildSnapshot(
             readings: rawReadings,
-            batteryCycleCount: batteryCycleCount
+            batteryCycleCount: cachedBatteryCycleCount
         )
     }
 

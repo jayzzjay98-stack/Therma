@@ -18,6 +18,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     private var settingsWindow: NSWindow?
 
     private var refreshTimer: Timer?
+    private var lastStatusText: [MenuBarItem: String] = [:]
 
     init(context: AppContext) {
         self.context = context
@@ -115,6 +116,10 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func updateButton(for item: MenuBarItem) {
+        let text = statusText(for: item)
+        guard text != lastStatusText[item] else { return }
+        lastStatusText[item] = text
+
         guard let button = statusItem(for: item).button else { return }
 
         // Network item: text-only, no icon (↓↑ already embedded in the value string)
@@ -126,10 +131,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
                 pointSize: context.preferences.iconSize(for: item)
             )
         }
-        button.attributedTitle = attributedTitle(
-            statusText(for: item),
-            size: context.preferences.textSize(for: item)
-        )
+        button.attributedTitle = attributedTitle(text, size: context.preferences.textSize(for: item))
         button.imagePosition = .imageLeading
         button.toolTip = tooltip(for: item)
     }

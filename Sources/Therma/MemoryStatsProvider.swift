@@ -10,6 +10,9 @@ final class MemoryStatsProvider {
     // causes spurious kern errors. The host port is a well-known cached send right.
     private let hostPort: host_t = mach_host_self()
 
+    private var cachedSwapMB: Double = 0
+    private var swapLastReadAt: Date = .distantPast
+
     // MARK: - Snapshot
 
     struct Snapshot {
@@ -61,10 +64,14 @@ final class MemoryStatsProvider {
     }
 
     private func readSwapUsage() -> Double {
+        let now = Date()
+        guard now.timeIntervalSince(swapLastReadAt) >= 10 else { return cachedSwapMB }
         var swapUsage = xsw_usage()
         var size = MemoryLayout<xsw_usage>.size
-        guard sysctlbyname("vm.swapusage", &swapUsage, &size, nil, 0) == 0 else { return 0 }
-        return Double(swapUsage.xsu_used) / Constants.bytesPerMB
+        guard sysctlbyname("vm.swapusage", &swapUsage, &size, nil, 0) == 0 else { return cachedSwapMB }
+        cachedSwapMB = Double(swapUsage.xsu_used) / Constants.bytesPerMB
+        swapLastReadAt = now
+        return cachedSwapMB
     }
 
     private func buildSnapshot(
