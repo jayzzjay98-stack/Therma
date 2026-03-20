@@ -5,23 +5,19 @@ import SwiftUI
 struct SettingsWindowBackground: View {
     var body: some View {
         ZStack {
-            // Deep dark base
             Color(red: 0.07, green: 0.07, blue: 0.10)
-            // Blue glow — top-left
             RadialGradient(
                 colors: [Color(red: 0.20, green: 0.42, blue: 1.0).opacity(0.22), .clear],
                 center: .topLeading,
                 startRadius: 0,
                 endRadius: 380
             )
-            // Purple glow — bottom-right
             RadialGradient(
                 colors: [Color(red: 0.58, green: 0.22, blue: 0.98).opacity(0.14), .clear],
                 center: .bottomTrailing,
                 startRadius: 0,
                 endRadius: 300
             )
-            // Subtle warm highlight — top-right
             RadialGradient(
                 colors: [Color(red: 0.98, green: 0.45, blue: 0.20).opacity(0.05), .clear],
                 center: .topTrailing,
@@ -42,7 +38,6 @@ struct SettingsSidebarItem: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 11) {
-                // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 9)
                         .fill(tab.iconGradient)
@@ -88,7 +83,170 @@ struct SettingsSidebarItem: View {
     }
 }
 
-// MARK: - Pref Group (list of rows with dividers, like iOS Settings)
+// MARK: - Menu Bar Source Row
+
+struct MenuBarSettingsSourceRow: View {
+    let item: MenuBarItem
+    let isSelected: Bool
+    let isVisible: Bool
+    let action: () -> Void
+    let toggleAction: (Bool) -> Void
+    let showDivider: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Button(action: action) {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 9)
+                                .fill(Color.white.opacity(isSelected ? 0.12 : 0.05))
+                                .frame(width: 32, height: 32)
+                            Image(systemName: item.icon)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(isSelected ? .white : .white.opacity(0.72))
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.90))
+                            Text(isVisible ? "Visible" : "Hidden")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(isVisible ? item.accentColor : .white.opacity(0.30))
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { isVisible },
+                        set: toggleAction
+                    )
+                )
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .scaleEffect(0.78)
+                .tint(item.accentColor)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .frame(maxWidth: .infinity)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 11)
+                        .fill(Color.white.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 11)
+                                .stroke(item.accentColor.opacity(0.22), lineWidth: 0.5)
+                        )
+                }
+            }
+            .overlay(alignment: .leading) {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(item.accentColor)
+                        .frame(width: 3, height: 24)
+                        .padding(.leading, 1)
+                }
+            }
+
+            if showDivider {
+                Rectangle()
+                    .fill(Color.white.opacity(0.05))
+                    .frame(height: 0.5)
+                    .padding(.leading, 14)
+            }
+        }
+    }
+}
+
+// MARK: - Detail Header
+
+struct SettingsDetailHeader: View {
+    let icon: String
+    let title: String
+    let subtitle: String?
+    let statusText: String
+    let accentColor: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 42, height: 42)
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.88))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.58))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Text(statusText)
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(accentColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(accentColor.opacity(0.12))
+                        .overlay(
+                            Capsule()
+                                .stroke(accentColor.opacity(0.24), lineWidth: 0.5)
+                        )
+                )
+        }
+    }
+}
+
+// MARK: - Preview Stage
+
+struct SettingsPreviewStage<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Spacer()
+                content
+                Spacer()
+            }
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.black.opacity(0.24))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                    )
+            )
+        }
+    }
+}
+
+// MARK: - Pref Group
 
 struct SettingsPrefGroup<Content: View>: View {
     let content: Content
@@ -144,19 +302,19 @@ struct SettingsPrefRow<Trailing: View>: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white.opacity(0.88))
                     if let sublabel {
                         Text(sublabel)
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.35))
                     }
                 }
                 Spacer()
                 trailing
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
 
             if showDivider {
                 Rectangle()
@@ -182,7 +340,7 @@ struct SettingsToggle: View {
     }
 }
 
-// MARK: - Segmented Picker (display mode)
+// MARK: - Segmented Picker
 
 struct SettingsModePicker: View {
     @Binding var selection: MonitorDisplayMode
@@ -244,11 +402,11 @@ struct SettingsSliderRow: View {
         VStack(spacing: 0) {
             HStack {
                 Text(label)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white.opacity(0.88))
                 Spacer()
                 Text("\(Int(value))")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(tint)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
@@ -257,19 +415,19 @@ struct SettingsSliderRow: View {
                             .fill(tint.opacity(0.12))
                     )
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 11)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 12)
+            .padding(.top, 9)
+            .padding(.bottom, 6)
 
             Slider(value: $value, in: range, step: 1)
                 .tint(tint)
-                .padding(.horizontal, 14)
-                .padding(.bottom, 11)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 9)
         }
     }
 }
 
-// MARK: - Unit Pill (°C / °F)
+// MARK: - Unit Picker
 
 struct TemperatureUnitPicker: View {
     @Binding var fahrenheit: Bool
@@ -277,7 +435,7 @@ struct TemperatureUnitPicker: View {
     var body: some View {
         HStack(spacing: 0) {
             unitButton("°C", selected: !fahrenheit) { fahrenheit = false }
-            unitButton("°F", selected:  fahrenheit) { fahrenheit = true  }
+            unitButton("°F", selected: fahrenheit) { fahrenheit = true }
         }
         .background(
             RoundedRectangle(cornerRadius: 8)
@@ -326,19 +484,19 @@ struct ThresholdBadge: View {
 // MARK: - Menu Bar Preview Chip
 
 struct MenuBarPreviewChip: View {
-    let displayMode: MonitorDisplayMode
+    let symbolName: String
+    let value: String
     let iconSize: Double
     let textSize: Double
-    var cpuValue: String = "54°C"
 
     var body: some View {
-        MenuBarLabel(
-            usagePercent: 68,
-            cpuValue: cpuValue,
-            displayMode: displayMode,
-            iconSize: iconSize,
-            textSize: textSize
-        )
+        HStack(spacing: max(3, clampedTextSize * 0.22)) {
+            Image(systemName: symbolName)
+                .font(.system(size: clampedIconSize, weight: .regular))
+            Text(value)
+                .font(.system(size: clampedTextSize, weight: .regular, design: .default))
+        }
+        .foregroundStyle(.white)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(
@@ -347,9 +505,17 @@ struct MenuBarPreviewChip: View {
                 .overlay(Capsule().stroke(Color.white.opacity(0.09), lineWidth: 0.5))
         )
     }
+
+    private var clampedIconSize: Double {
+        min(max(iconSize, Constants.minimumMenuBarIconSize), Constants.maximumMenuBarIconSize)
+    }
+
+    private var clampedTextSize: Double {
+        min(max(textSize, Constants.minimumMenuBarTextSize), Constants.maximumMenuBarTextSize)
+    }
 }
 
-// MARK: - Action Bar (Reset + Done)
+// MARK: - Action Bar
 
 struct SettingsActionBar: View {
     let resetAction: () -> Void

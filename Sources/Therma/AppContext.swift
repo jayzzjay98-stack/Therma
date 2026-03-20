@@ -6,6 +6,7 @@ final class AppContext {
 
     let ramMonitor    = RAMMonitor()
     let cpuMonitor    = CPUMonitor()
+    let systemMetricsMonitor = SystemMetricsMonitor()
     let preferences   = MenuBarPreferences()
     let updateManager = UpdateManager()
     let alertManager  = AlertManager()

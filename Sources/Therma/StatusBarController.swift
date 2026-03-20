@@ -5,8 +5,11 @@ import SwiftUI
 final class StatusBarController: NSObject, NSWindowDelegate {
     private let context: AppContext
 
+    // Keep memory-related items together, then CPU-related items.
     private let memoryItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let networkItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let cpuItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let cpuUsageItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     private let memoryPopover = NSPopover()
     private let cpuPopover = NSPopover()
@@ -31,6 +34,28 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         refreshTimer?.invalidate()
     }
 
+    private var statusItems: [(item: MenuBarItem, statusItem: NSStatusItem)] {
+        [
+            (.memory, memoryItem),
+            (.network, networkItem),
+            (.cpu, cpuItem),
+            (.cpuUsage, cpuUsageItem)
+        ]
+    }
+
+    private func statusItem(for item: MenuBarItem) -> NSStatusItem {
+        switch item {
+        case .memory:
+            return memoryItem
+        case .network:
+            return networkItem
+        case .cpu:
+            return cpuItem
+        case .cpuUsage:
+            return cpuUsageItem
+        }
+    }
+
     private func configurePopover(_ popover: NSPopover, mode: MonitorDisplayMode) {
         popover.behavior = .transient
         popover.animates = true
@@ -46,6 +71,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
             rootView: MenuBarView(
                 ramMonitor: context.ramMonitor,
                 cpuMonitor: context.cpuMonitor,
+                systemMetricsMonitor: context.systemMetricsMonitor,
                 preferences: context.preferences,
                 displayModeOverride: mode,
                 openSettingsAction: { [weak self] in self?.openSettings() }
@@ -54,16 +80,12 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func configureButtons() {
-        if let button = memoryItem.button {
+        for (item, statusItem) in statusItems {
+            guard let button = statusItem.button else { continue }
             button.target = self
-            button.action = #selector(toggleMemoryPopover(_:))
+            button.action = #selector(handleStatusItemClick(_:))
             button.sendAction(on: [.leftMouseUp])
-        }
-
-        if let button = cpuItem.button {
-            button.target = self
-            button.action = #selector(toggleCPUPopover(_:))
-            button.sendAction(on: [.leftMouseUp])
+            button.identifier = NSUserInterfaceItemIdentifier(item.rawValue)
         }
     }
 
@@ -81,47 +103,68 @@ final class StatusBarController: NSObject, NSWindowDelegate {
 
     private func refreshStatusItems() {
         updateVisibility()
-        updateMemoryButton()
-        updateCPUButton()
+        for (item, _) in statusItems {
+            updateButton(for: item)
+        }
     }
 
     private func updateVisibility() {
-        memoryItem.isVisible = context.preferences.displayMode.showsMemory
-        cpuItem.isVisible = context.preferences.displayMode.showsCPU
+        for (item, statusItem) in statusItems {
+            statusItem.isVisible = context.preferences.isVisible(item)
+        }
     }
 
-    private func updateMemoryButton() {
-        guard let button = memoryItem.button else { return }
-        button.image = symbolImage(
-            systemName: "cpu",
-            pointSize: context.preferences.menuBarIconSize
-        )
-        button.attributedTitle = attributedTitle(
-            "\(context.ramMonitor.usagePercent)%",
-            size: context.preferences.menuBarTextSize
-        )
-        button.imagePosition = .imageLeading
-        button.toolTip = "Therma"
-    }
+    private func updateButton(for item: MenuBarItem) {
+        guard let button = statusItem(for: item).button else { return }
 
-    private func updateCPUButton() {
-        guard let button = cpuItem.button else { return }
-        button.image = symbolImage(
-            systemName: "thermometer.medium",
-            pointSize: context.preferences.menuBarIconSize
-        )
-        let tempString: String
-        if let celsius = context.cpuMonitor.currentCelsius {
-            tempString = context.preferences.formatCelsius(celsius)
+        // Network item: text-only, no icon (↓↑ already embedded in the value string)
+        if item == .network {
+            button.image = nil
         } else {
-            tempString = context.cpuMonitor.thermalLevel.shortLabel
+            button.image = symbolImage(
+                systemName: item.icon,
+                pointSize: context.preferences.iconSize(for: item)
+            )
         }
         button.attributedTitle = attributedTitle(
-            tempString,
-            size: context.preferences.menuBarTextSize
+            statusText(for: item),
+            size: context.preferences.textSize(for: item)
         )
         button.imagePosition = .imageLeading
-        button.toolTip = "CPU Temperature"
+        button.toolTip = tooltip(for: item)
+    }
+
+    private func statusText(for item: MenuBarItem) -> String {
+        switch item {
+        case .memory:
+            return "\(context.ramMonitor.usagePercent)%"
+        case .network:
+            return context.systemMetricsMonitor.networkMenuBarDisplayValue
+        case .cpu:
+            if let celsius = context.cpuMonitor.currentCelsius {
+                return context.preferences.formatCelsius(celsius)
+            }
+            return context.cpuMonitor.thermalLevel.shortLabel
+        case .cpuUsage:
+            return context.systemMetricsMonitor.cpuUsageDisplayValue
+        }
+    }
+
+    private func tooltip(for item: MenuBarItem) -> String {
+        switch item {
+        case .memory:
+            return "RAM Usage"
+        case .network:
+            return "Network Speed"
+        case .cpu:
+            return "CPU Temperature"
+        case .cpuUsage:
+            return "CPU Usage"
+        }
+    }
+
+    private func popover(for item: MenuBarItem) -> NSPopover {
+        item.group == .memory ? memoryPopover : cpuPopover
     }
 
     private func symbolImage(systemName: String, pointSize: Double) -> NSImage? {
@@ -141,13 +184,19 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     @objc
-    private func toggleMemoryPopover(_ sender: AnyObject?) {
-        toggle(popover: memoryPopover, for: memoryItem)
-    }
+    private func handleStatusItemClick(_ sender: NSStatusBarButton) {
+        guard
+            let identifier = sender.identifier?.rawValue,
+            let item = MenuBarItem(rawValue: identifier)
+        else { return }
 
-    @objc
-    private func toggleCPUPopover(_ sender: AnyObject?) {
-        toggle(popover: cpuPopover, for: cpuItem)
+        // cpuUsage and network are display-only items — no popover on click
+        switch item {
+        case .memory, .cpu:
+            toggle(popover: popover(for: item), for: statusItem(for: item))
+        case .network, .cpuUsage:
+            break
+        }
     }
 
     private func toggle(popover: NSPopover, for item: NSStatusItem) {

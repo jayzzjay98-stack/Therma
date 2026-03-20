@@ -9,12 +9,12 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Therma",
-            path: "Sources/RamCleaner"
+            path: "Sources/Therma"
         ),
         .testTarget(
             name: "ThermaTests",
             dependencies: ["Therma"],
-            path: "Tests/RamCleanerTests"
+            path: "Tests/ThermaTests"
         )
     ]
 )

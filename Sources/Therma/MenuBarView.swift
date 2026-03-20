@@ -6,6 +6,7 @@ struct MenuBarView: View {
 
     let ramMonitor: RAMMonitor
     let cpuMonitor: CPUMonitor
+    let systemMetricsMonitor: SystemMetricsMonitor
     let preferences: MenuBarPreferences
     let displayModeOverride: MonitorDisplayMode?
     let openSettingsAction: () -> Void
@@ -14,10 +15,8 @@ struct MenuBarView: View {
     @State private var statusMessage: String?
     @State private var statusIsSuccess = false
     @State private var cleanTimedOut = false
-    // ARCH-04: Store theme name, not array index — index breaks when themes are reordered.
     @AppStorage("selectedThemeName") private var selectedThemeName: String = ThemeRegistry.all[0].name
 
-    // CR-08: Safe lookup by name — never crashes on out-of-bounds index.
     private var theme: AppTheme {
         ThemeRegistry.all.first { $0.name == selectedThemeName } ?? ThemeRegistry.all[0]
     }
@@ -46,8 +45,6 @@ struct MenuBarView: View {
             updateForegroundTimer(for: newValue)
         }
     }
-
-    // MARK: - Header
 
     private var headerSection: some View {
         HStack(spacing: 8) {
@@ -83,13 +80,14 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - Main Display
-
     private var dashboardSection: some View {
         VStack(spacing: 0) {
             if displayMode.showsMemory {
                 memoryDisplay
                 statsGrid
+                if preferences.isVisible(.network) {
+                    networkActivityCard
+                }
             }
 
             if displayMode.showsCPU {
@@ -142,8 +140,6 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - Segment Bar
-
     private var segmentBar: some View {
         GeometryReader { geometry in
             let total  = max(8, Int(geometry.size.width / Constants.segmentItemWidth))
@@ -170,8 +166,6 @@ struct MenuBarView: View {
         let mid = Double(total) / 2.0
         return CGFloat(Double(Constants.segmentBarHeight) - abs(Double(i) - mid) * 0.8)
     }
-
-    // MARK: - Mini Ring
 
     private var miniRing: some View {
         let freePercent = ramMonitor.totalGB > 0
@@ -211,8 +205,6 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - Stats Grid
-
     private var statsGrid: some View {
         HStack(spacing: 4) {
             MenuStatBox(
@@ -231,23 +223,26 @@ struct MenuBarView: View {
         .padding(.bottom, 10)
     }
 
-    // MARK: - CPU Display
+    private var networkActivityCard: some View {
+        NetworkActivityCard(systemMetricsMonitor: systemMetricsMonitor)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 10)
+    }
 
     private var cpuDisplay: some View {
         CPUSectionView(
             cpuMonitor: cpuMonitor,
+            systemMetricsMonitor: systemMetricsMonitor,
             preferences: preferences,
             topPadding: displayMode.showsMemory ? 2 : 12
         )
     }
 
     private func formatSwap(_ mb: Double) -> String {
-        if mb < 1        { return "0 MB" }
+        if mb < 1 { return "0 MB" }
         if mb >= Constants.kbPerMB { return String(format: "%.1f GB", mb / Constants.kbPerMB) }
         return String(format: "%.0f MB", mb)
     }
-
-    // MARK: - Divider
 
     private func dividerLine(_ label: String) -> some View {
         ZStack {
@@ -263,12 +258,9 @@ struct MenuBarView: View {
         .padding(.bottom, 6)
     }
 
-    // MARK: - Processes
-
     private var processesSection: some View {
         VStack(spacing: 1) {
             if ramMonitor.isLoadingProcesses {
-                // only shown before the first process list arrives
                 HStack(spacing: 5) {
                     ProgressView().controlSize(.small)
                     Text("Scanning...")
@@ -277,7 +269,6 @@ struct MenuBarView: View {
                 }
                 .padding(.vertical, 4)
             } else {
-                // max across the whole list, not just the first entry
                 let maxMem = ramMonitor.topProcesses.map(\.memoryMB).max() ?? 1
                 ForEach(Array(ramMonitor.topProcesses.enumerated()), id: \.element.id) { i, p in
                     processRow(p, rank: i + 1, maxMem: maxMem)
@@ -334,8 +325,6 @@ struct MenuBarView: View {
             .frame(width: 48, alignment: .trailing)
     }
 
-    // MARK: - Action Buttons
-
     private var actionButtons: some View {
         HStack(spacing: 6) {
             if cleaningInProgress {
@@ -372,8 +361,6 @@ struct MenuBarView: View {
         .padding(.bottom, 6)
     }
 
-    // MARK: - Status + Theme Picker
-
     private var themeSection: some View {
         ThemeStripView(
             selectedThemeName: $selectedThemeName,
@@ -382,13 +369,9 @@ struct MenuBarView: View {
         )
     }
 
-    // MARK: - Footer
-
     private var footerSection: some View {
         MenuFooterBar(openSettingsAction: openSettingsAction)
     }
-
-    // MARK: - Helpers
 
     private func formatMemory(_ mb: Double) -> String {
         mb >= Constants.kbPerMB
@@ -426,8 +409,6 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - Clean Action
-
     private func performClean() {
         cleaningInProgress = true
         cleanTimedOut      = false
@@ -449,10 +430,10 @@ struct MenuBarView: View {
     private func scheduleCleanTimeout() {
         DispatchQueue.main.asyncAfter(deadline: .now() + Constants.cleanTimeoutSeconds) {
             guard self.cleaningInProgress else { return }
-            self.cleanTimedOut     = true
+            self.cleanTimedOut      = true
             self.cleaningInProgress = false
-            self.statusMessage     = "Timed out"
-            self.statusIsSuccess   = false
+            self.statusMessage      = "Timed out"
+            self.statusIsSuccess    = false
             self.scheduleDismissStatus()
         }
     }

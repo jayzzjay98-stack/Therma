@@ -143,9 +143,9 @@ The zip **must** be named `Therma-<version>.zip` and contain `Therma.app` at its
 
 ```
 Therma/
-├── Sources/RamCleaner/
+├── Sources/Therma/
 │   │
-│   ├── RamCleanerApp.swift          # @main — app entry point
+│   ├── ThermaApp.swift              # @main — app entry point
 │   ├── AppContext.swift             # Shared singletons (monitors, prefs, updater)
 │   ├── StatusBarController.swift   # Menu bar item, popover, right-click menu
 │   │
@@ -181,7 +181,7 @@ Therma/
 │   ├── MonitorDisplayMode.swift
 │   └── Constants.swift
 │
-├── Tests/RamCleanerTests/           # 65 unit tests
+├── Tests/ThermaTests/               # 65 unit tests
 │
 ├── scripts/
 │   ├── generate_app_icon.swift      # Programmatic icon (NSBezierPath)

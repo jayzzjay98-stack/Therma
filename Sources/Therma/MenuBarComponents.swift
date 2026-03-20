@@ -40,8 +40,37 @@ struct MenuStatBox: View {
     }
 }
 
+struct NetworkActivityCard: View {
+    let systemMetricsMonitor: SystemMetricsMonitor
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NETWORK")
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.56))
+                .tracking(0.8)
+
+            HStack(spacing: 4) {
+                MenuStatBox(
+                    label: "DOWN",
+                    value: systemMetricsMonitor.downloadSpeedDisplayValue,
+                    isOk: true
+                )
+                MenuStatBox(
+                    label: "UP",
+                    value: systemMetricsMonitor.uploadSpeedDisplayValue,
+                    isOk: false
+                )
+            }
+        }
+        .padding(12)
+        .background(MenuCardBackground())
+    }
+}
+
 struct CPUSectionView: View {
     let cpuMonitor: CPUMonitor
+    let systemMetricsMonitor: SystemMetricsMonitor
     let preferences: MenuBarPreferences
     let topPadding: CGFloat
 
@@ -57,16 +86,15 @@ struct CPUSectionView: View {
                     value: cpuMonitor.currentCelsius.map { preferences.formatCelsius($0) } ?? cpuMonitor.thermalLevel.shortLabel,
                     isOk: !cpuMonitor.thermalLevel.isWarning
                 )
-                MenuStatBox(
-                    label: "AVERAGE",
-                    value: cpuMonitor.averageCelsius.map { preferences.formatCelsius($0) } ?? "--",
-                    isOk: true
-                )
-                MenuStatBox(
-                    label: "PEAK",
-                    value: cpuMonitor.hottestCelsius.map { preferences.formatCelsius($0) } ?? "--",
-                    isOk: false
-                )
+
+                if preferences.isVisible(.cpuUsage) {
+                    MenuStatBox(
+                        label: "USAGE",
+                        value: systemMetricsMonitor.cpuUsageDisplayValue,
+                        isOk: (systemMetricsMonitor.cpuUsagePercent ?? 0) < 70
+                    )
+                }
+
             }
         }
         .padding(.horizontal, 14)
@@ -116,16 +144,20 @@ struct CPUSectionView: View {
                 .foregroundStyle(.white.opacity(0.56))
                 .tracking(0.8)
 
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .center, spacing: 0) {
                 Text(cpuMonitor.batteryCelsius.map { preferences.formatCelsius($0) } ?? "--")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(batteryValueColor)
                     .monospacedDigit()
-
-                capsuleLabel(cpuMonitor.batteryCycleDisplayValue, emphasis: .white.opacity(0.74))
-                capsuleLabel(batteryStatusText, emphasis: .white.opacity(0.62))
+                    .fixedSize()
 
                 Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    capsuleLabel(cpuMonitor.batteryCycleDisplayValue, emphasis: .white.opacity(0.74))
+                    capsuleLabel(batteryStatusText, emphasis: .white.opacity(0.62))
+                }
+                .padding(.trailing, 4)
             }
         }
         .padding(12)
@@ -246,14 +278,13 @@ struct CPUSectionView: View {
         )
     }
 
-    /// Returns a perceptually distinct color per thermal zone.
     private func thermalColor(for celsius: Double) -> Color {
         switch celsius {
-        case ..<50:  return Color(red: 0.30, green: 0.82, blue: 1.00) // cool blue
-        case ..<65:  return Color(red: 0.38, green: 0.92, blue: 0.68) // teal-green
-        case ..<78:  return Color(red: 0.98, green: 0.85, blue: 0.28) // warm yellow
-        case ..<88:  return Color(red: 1.00, green: 0.58, blue: 0.18) // orange
-        default:     return Color(red: 1.00, green: 0.28, blue: 0.32) // hot red
+        case ..<50:  return Color(red: 0.30, green: 0.82, blue: 1.00)
+        case ..<65:  return Color(red: 0.38, green: 0.92, blue: 0.68)
+        case ..<78:  return Color(red: 0.98, green: 0.85, blue: 0.28)
+        case ..<88:  return Color(red: 1.00, green: 0.58, blue: 0.18)
+        default:     return Color(red: 1.00, green: 0.28, blue: 0.32)
         }
     }
 }
@@ -343,7 +374,6 @@ struct ThemeStripView: View {
             }
     }
 
-    /// Visual layers for a theme swatch — separated from tap/animation logic.
     @ViewBuilder
     private func themePresetDecoration(theme: AppTheme, isActive: Bool) -> some View {
         ZStack {

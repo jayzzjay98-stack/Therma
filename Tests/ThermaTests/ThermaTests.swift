@@ -23,6 +23,10 @@ final class ConstantsTests: XCTestCase {
     func test_cpuRefreshInterval_isPositive() {
         XCTAssertGreaterThan(Constants.cpuRefreshInterval, 0)
     }
+
+    func test_powerTelemetryRefreshInterval_isOneSecond() {
+        XCTAssertEqual(Constants.powerTelemetryRefreshInterval, 1.0)
+    }
 }
 
 // MARK: - Monitor Display Mode Tests
@@ -42,6 +46,144 @@ final class MonitorDisplayModeTests: XCTestCase {
     func test_bothMode_showsMemoryAndCPU() {
         XCTAssertTrue(MonitorDisplayMode.both.showsMemory)
         XCTAssertTrue(MonitorDisplayMode.both.showsCPU)
+    }
+}
+
+// MARK: - Menu Bar Preferences Tests
+
+final class MenuBarPreferencesTests: XCTestCase {
+
+    func test_legacyMenuBarSizes_seedRAMAndCPUValues() {
+        let suiteName = "ThermaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set(14.0, forKey: "menuBarIconSize")
+        defaults.set(15.0, forKey: "menuBarTextSize")
+
+        let preferences = MenuBarPreferences(userDefaults: defaults)
+
+        XCTAssertEqual(preferences.memoryMenuBarIconSize, 14.0)
+        XCTAssertEqual(preferences.cpuMenuBarIconSize, 14.0)
+        XCTAssertEqual(preferences.memoryMenuBarTextSize, 15.0)
+        XCTAssertEqual(preferences.cpuMenuBarTextSize, 15.0)
+    }
+
+    func test_itemSpecificSizes_canDiffer() {
+        let suiteName = "ThermaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let preferences = MenuBarPreferences(userDefaults: defaults)
+        preferences.memoryMenuBarIconSize = 10
+        preferences.memoryMenuBarTextSize = 11
+        preferences.networkMenuBarIconSize = 12
+        preferences.networkMenuBarTextSize = 13
+        preferences.cpuMenuBarIconSize = 16
+        preferences.cpuMenuBarTextSize = 17
+        preferences.cpuUsageMenuBarIconSize = 14
+        preferences.cpuUsageMenuBarTextSize = 15
+        preferences.powerMenuBarIconSize = 18
+        preferences.powerMenuBarTextSize = 19
+
+        XCTAssertEqual(preferences.iconSize(for: .memory), 10)
+        XCTAssertEqual(preferences.textSize(for: .memory), 11)
+        XCTAssertEqual(preferences.iconSize(for: .network), 12)
+        XCTAssertEqual(preferences.textSize(for: .network), 13)
+        XCTAssertEqual(preferences.iconSize(for: .cpu), 16)
+        XCTAssertEqual(preferences.textSize(for: .cpu), 17)
+        XCTAssertEqual(preferences.iconSize(for: .cpuUsage), 14)
+        XCTAssertEqual(preferences.textSize(for: .cpuUsage), 15)
+        XCTAssertEqual(preferences.iconSize(for: .power), 18)
+        XCTAssertEqual(preferences.textSize(for: .power), 19)
+    }
+
+    func test_metricItems_defaultToVisible() {
+        let suiteName = "ThermaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let preferences = MenuBarPreferences(userDefaults: defaults)
+
+        XCTAssertTrue(preferences.isVisible(.network))
+        XCTAssertTrue(preferences.isVisible(.cpuUsage))
+        XCTAssertTrue(preferences.isVisible(.power))
+    }
+
+    func test_reset_restoresMetricItemVisibility() {
+        let suiteName = "ThermaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let preferences = MenuBarPreferences(userDefaults: defaults)
+        preferences.setVisible(false, for: .network)
+        preferences.setVisible(false, for: .cpuUsage)
+        preferences.setVisible(false, for: .power)
+
+        preferences.reset()
+
+        XCTAssertTrue(preferences.isVisible(.network))
+        XCTAssertTrue(preferences.isVisible(.cpuUsage))
+        XCTAssertTrue(preferences.isVisible(.power))
+    }
+
+    func test_visibilityGuard_keepsAtLeastOneItemVisible() {
+        let suiteName = "ThermaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let preferences = MenuBarPreferences(userDefaults: defaults)
+        for item in MenuBarItem.allCases.dropFirst() {
+            preferences.setVisible(false, for: item)
+        }
+        preferences.setVisible(false, for: .memory)
+
+        XCTAssertTrue(preferences.isVisible(.memory))
+    }
+}
+
+// MARK: - System Metrics Tests
+
+final class SystemMetricsFormattingTests: XCTestCase {
+
+    func test_throughputFormatter_formatsKilobytes() {
+        XCTAssertEqual(ThroughputFormatter.string(for: 1_536), "1.5 KB/s")
+    }
+
+    func test_throughputFormatter_formatsMegabytes() {
+        XCTAssertEqual(ThroughputFormatter.string(for: 1_572_864), "1.5 MB/s")
+    }
+
+    func test_throughputFormatter_formatsCompactMegabytes() {
+        XCTAssertEqual(ThroughputFormatter.compactString(for: 1_572_864), "1.5M")
+    }
+
+    func test_powerTelemetryParser_parsesNSNumber() {
+        XCTAssertEqual(PowerTelemetryParser.parseMilliwatts(NSNumber(value: 15234)), 15234)
+    }
+
+    func test_powerTelemetryParser_parsesString() {
+        XCTAssertEqual(PowerTelemetryParser.parseMilliwatts("15234"), 15234)
+    }
+
+    func test_powerTelemetryParser_normalizesWrappedUnsignedValue() {
+        XCTAssertEqual(PowerTelemetryParser.parseMilliwatts("18446744073709551034"), -582)
+    }
+
+    func test_powerMenuItem_title_isSystemPower() {
+        XCTAssertEqual(MenuBarItem.power.title, "System Power")
+    }
+
+    func test_powermetricsPlistParser_extractsCombinedPower() throws {
+        let plist: [String: Any] = [
+            "processor": [
+                "combined_power": 8733.11
+            ]
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+
+        let watts = try XCTUnwrap(PowermetricsPlistParser.parseWatts(from: data))
+        XCTAssertEqual(watts, 8.73311, accuracy: 0.00001)
     }
 }
 

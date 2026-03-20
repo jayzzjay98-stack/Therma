@@ -61,6 +61,7 @@ struct SettingsView: View {
     let closeAction: (() -> Void)?
 
     @State private var selectedTab: SettingsTab = .menuBar
+    @State private var selectedMenuBarItem: MenuBarItem = .memory
     @State private var launchAtLoginManager = LaunchAtLoginManager()
 
     init(
@@ -120,9 +121,11 @@ struct SettingsView: View {
     private var contentPanel: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
-                Text(selectedTab.title)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                if selectedTab != .menuBar {
+                    Text(selectedTab.title)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
 
                 switch selectedTab {
                 case .menuBar: menuBarPane
@@ -131,7 +134,7 @@ struct SettingsView: View {
                 case .about:   aboutPane
                 }
             }
-            .padding(22)
+            .padding(selectedTab == .menuBar ? 18 : 22)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -140,64 +143,59 @@ struct SettingsView: View {
     // MARK: - Menu Bar Pane
 
     private var menuBarPane: some View {
-        VStack(spacing: 14) {
-            // Live preview
-            HStack(spacing: 12) {
-                if preferences.displayMode != .cpu {
-                    MenuBarPreviewChip(displayMode: .memory,
-                                      iconSize: preferences.menuBarIconSize,
-                                      textSize: preferences.menuBarTextSize,
-                                      cpuValue: preferences.formatCelsius(54))
-                }
-                if preferences.displayMode != .memory {
-                    MenuBarPreviewChip(displayMode: .cpu,
-                                      iconSize: preferences.menuBarIconSize,
-                                      textSize: preferences.menuBarTextSize,
-                                      cpuValue: preferences.formatCelsius(54))
-                }
-                if preferences.displayMode == .memory {
-                    MenuBarPreviewChip(displayMode: .memory,
-                                      iconSize: preferences.menuBarIconSize,
-                                      textSize: preferences.menuBarTextSize,
-                                      cpuValue: preferences.formatCelsius(54))
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsPrefGroup {
+                    ForEach(Array(MenuBarItem.allCases.enumerated()), id: \.element.id) { index, item in
+                        MenuBarSettingsSourceRow(
+                            item: item,
+                            isSelected: selectedMenuBarItem == item,
+                            isVisible: preferences.isVisible(item),
+                            action: { selectedMenuBarItem = item },
+                            toggleAction: { preferences.setVisible($0, for: item) },
+                            showDivider: index < MenuBarItem.allCases.count - 1
+                        )
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.black.opacity(0.25))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
-                    )
-            )
+            .frame(width: SettingsLayoutMetrics.menuBarSourceListWidth, alignment: .topLeading)
 
-            // Display mode
-            SettingsPrefGroup {
-                SettingsPrefRow("Display", sublabel: "Visible items in menu bar", showDivider: false) {
-                    SettingsModePicker(selection: $preferences.displayMode)
-                        .frame(width: SettingsLayoutMetrics.modePickerWidth)
-                }
+            menuBarDetailPane
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var menuBarDetailPane: some View {
+        let item = selectedMenuBarItem
+
+        return VStack(alignment: .leading, spacing: 12) {
+            SettingsPreviewStage {
+                MenuBarPreviewChip(
+                    symbolName: item.icon,
+                    value: item == .cpu ? preferences.formatCelsius(54) : item.previewValue,
+                    iconSize: preferences.iconSize(for: item),
+                    textSize: preferences.textSize(for: item)
+                )
             }
 
-            // Sizes
             SettingsPrefGroup {
                 SettingsSliderRow(
                     label: "Icon Size",
-                    value: $preferences.menuBarIconSize,
+                    value: iconSizeBinding(for: item),
                     range: Constants.minimumMenuBarIconSize...Constants.maximumMenuBarIconSize,
-                    tint: Color(red: 0.23, green: 0.51, blue: 0.96)
+                    tint: item.accentColor
                 )
+
                 Rectangle()
                     .fill(Color.white.opacity(0.05))
                     .frame(height: 0.5)
                     .padding(.leading, 14)
+
                 SettingsSliderRow(
                     label: "Text Size",
-                    value: $preferences.menuBarTextSize,
+                    value: textSizeBinding(for: item),
                     range: Constants.minimumMenuBarTextSize...Constants.maximumMenuBarTextSize,
-                    tint: Color(red: 0.23, green: 0.51, blue: 0.96)
+                    tint: item.accentColor
                 )
             }
         }
@@ -251,7 +249,6 @@ struct SettingsView: View {
 
     private var alertsPane: some View {
         VStack(spacing: 14) {
-            // RAM Alert
             SettingsPrefGroup {
                 SettingsPrefRow(
                     "RAM Critical Alert",
@@ -278,7 +275,6 @@ struct SettingsView: View {
                 )
             }
 
-            // CPU Alert
             SettingsPrefGroup {
                 SettingsPrefRow(
                     "CPU Temperature Alert",
@@ -408,4 +404,31 @@ struct SettingsView: View {
     private func closeWindow() {
         if let closeAction { closeAction() } else { dismiss() }
     }
+
+    private func iconSizeBinding(for item: MenuBarItem) -> Binding<Double> {
+        switch item {
+        case .memory:
+            return $preferences.memoryMenuBarIconSize
+        case .network:
+            return $preferences.networkMenuBarIconSize
+        case .cpu:
+            return $preferences.cpuMenuBarIconSize
+        case .cpuUsage:
+            return $preferences.cpuUsageMenuBarIconSize
+        }
+    }
+
+    private func textSizeBinding(for item: MenuBarItem) -> Binding<Double> {
+        switch item {
+        case .memory:
+            return $preferences.memoryMenuBarTextSize
+        case .network:
+            return $preferences.networkMenuBarTextSize
+        case .cpu:
+            return $preferences.cpuMenuBarTextSize
+        case .cpuUsage:
+            return $preferences.cpuUsageMenuBarTextSize
+        }
+    }
+
 }
