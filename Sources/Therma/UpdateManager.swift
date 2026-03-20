@@ -189,13 +189,10 @@ final class UpdateManager: ObservableObject {
     private func versionIsNewer(_ new: String, than current: String) -> Bool {
         let parse: (String) -> [Int] = { $0.split(separator: ".").compactMap { Int($0) } }
         let n = parse(new), c = parse(current)
-        for i in 0..<max(n.count, c.count) {
-            let nv = i < n.count ? n[i] : 0
-            let cv = i < c.count ? c[i] : 0
-            if nv > cv { return true }
-            if nv < cv { return false }
-        }
-        return false
+        let count = max(n.count, c.count)
+        let nPad = n + Array(repeating: 0, count: count - n.count)
+        let cPad = c + Array(repeating: 0, count: count - c.count)
+        return zip(nPad, cPad).first { $0 != $1 }.map { $0 > $1 } ?? false
     }
 }
 

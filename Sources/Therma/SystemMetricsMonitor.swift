@@ -9,24 +9,12 @@ struct NetworkThroughput {
 enum ThroughputFormatter {
     static func string(for bytesPerSecond: Double?) -> String {
         guard let bytesPerSecond, bytesPerSecond.isFinite, bytesPerSecond >= 0 else { return "--" }
-        if bytesPerSecond < 1_024 {
-            return "\(Int(bytesPerSecond.rounded())) B/s"
-        }
-        if bytesPerSecond < 1_048_576 {
-            return String(format: "%.1f KB/s", bytesPerSecond / 1_024)
-        }
-        return String(format: "%.1f MB/s", bytesPerSecond / 1_048_576)
+        return String(format: "%.2f MB/s", bytesPerSecond / 1_048_576)
     }
 
     static func compactString(for bytesPerSecond: Double?) -> String {
         guard let bytesPerSecond, bytesPerSecond.isFinite, bytesPerSecond >= 0 else { return "--" }
-        if bytesPerSecond < 1_024 {
-            return "\(Int(bytesPerSecond.rounded()))B"
-        }
-        if bytesPerSecond < 1_048_576 {
-            return String(format: "%.1fK", bytesPerSecond / 1_024)
-        }
-        return String(format: "%.1fM", bytesPerSecond / 1_048_576)
+        return String(format: "%.2fM", bytesPerSecond / 1_048_576)
     }
 }
 

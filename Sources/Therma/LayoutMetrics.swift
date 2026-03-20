@@ -8,7 +8,10 @@ enum SettingsLayoutMetrics {
     static let contentWidth: CGFloat   = totalWidth
     static let contentHeight: CGFloat  = totalHeight
 
-    static let backgroundGlowRadius: CGFloat = 280
+    static let backgroundGlowRadius: CGFloat   = 280
+    static let backgroundGlowRadiusBlue: CGFloat   = 380
+    static let backgroundGlowRadiusPurple: CGFloat = 300
+    static let backgroundGlowRadiusWarm: CGFloat   = 200
     static let modePickerWidth: CGFloat = 200
     static let menuBarSourceListWidth: CGFloat = 188
 

@@ -10,19 +10,19 @@ struct SettingsWindowBackground: View {
                 colors: [Color(red: 0.20, green: 0.42, blue: 1.0).opacity(0.22), .clear],
                 center: .topLeading,
                 startRadius: 0,
-                endRadius: 380
+                endRadius: SettingsLayoutMetrics.backgroundGlowRadiusBlue
             )
             RadialGradient(
                 colors: [Color(red: 0.58, green: 0.22, blue: 0.98).opacity(0.14), .clear],
                 center: .bottomTrailing,
                 startRadius: 0,
-                endRadius: 300
+                endRadius: SettingsLayoutMetrics.backgroundGlowRadiusPurple
             )
             RadialGradient(
                 colors: [Color(red: 0.98, green: 0.45, blue: 0.20).opacity(0.05), .clear],
                 center: .topTrailing,
                 startRadius: 0,
-                endRadius: 200
+                endRadius: SettingsLayoutMetrics.backgroundGlowRadiusWarm
             )
         }
     }
