@@ -60,6 +60,8 @@ final class RAMMonitor: @unchecked Sendable {
     private let cacheManager   = CacheManager()
     private let purgeManager   = PurgeManager()
     private let appLifecycleTracker = AppLifecycleTracker()
+    private let autoRefreshStats: Bool
+    private var processSubscribers = Set<String>()
 
     // MARK: - Timers
 
@@ -68,10 +70,13 @@ final class RAMMonitor: @unchecked Sendable {
 
     // MARK: - Init / Deinit
 
-    init() {
+    init(autoRefreshStats: Bool = true) {
+        self.autoRefreshStats = autoRefreshStats
         chipName = ChipDetector.detect()
         refreshStats()
-        startBackgroundTimer()
+        if autoRefreshStats {
+            startBackgroundTimer()
+        }
     }
 
     deinit {
@@ -86,22 +91,43 @@ final class RAMMonitor: @unchecked Sendable {
         refreshProcesses()
     }
 
+    func refreshStatsOnly() {
+        refreshStats()
+    }
+
     // MARK: - Timer Control
 
-    func startForegroundTimer() {
+    func setProcessMonitoring(_ enabled: Bool, source: String) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.foregroundTimer?.invalidate()
-            self.refreshProcesses()
-            self.foregroundTimer = Timer.scheduledTimer(
-                withTimeInterval: Constants.foregroundRefreshInterval,
-                repeats: true
-            ) { [weak self] _ in self?.refreshProcesses() }
-            RunLoop.main.add(self.foregroundTimer!, forMode: .common)
+
+            if enabled {
+                let inserted = self.processSubscribers.insert(source).inserted
+                if inserted, self.processSubscribers.count == 1 {
+                    self.startForegroundTimer()
+                } else if inserted {
+                    self.refreshProcesses()
+                }
+            } else {
+                self.processSubscribers.remove(source)
+                if self.processSubscribers.isEmpty {
+                    self.stopForegroundTimer()
+                }
+            }
         }
     }
 
-    func stopForegroundTimer() {
+    private func startForegroundTimer() {
+        foregroundTimer?.invalidate()
+        refreshProcesses()
+        foregroundTimer = Timer.scheduledTimer(
+            withTimeInterval: Constants.foregroundRefreshInterval,
+            repeats: true
+        ) { [weak self] _ in self?.refreshProcesses() }
+        RunLoop.main.add(foregroundTimer!, forMode: .common)
+    }
+
+    private func stopForegroundTimer() {
         foregroundTimer?.invalidate()
         foregroundTimer = nil
     }

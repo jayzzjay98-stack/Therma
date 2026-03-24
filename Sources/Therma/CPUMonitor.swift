@@ -186,12 +186,16 @@ final class CPUMonitor {
     var history: [Double] = []
 
     private let provider: CPUSensorProvider
+    private let autoRefresh: Bool
     private var refreshTimer: Timer?
 
-    init(provider: CPUSensorProvider = CPUSensorProvider()) {
+    init(provider: CPUSensorProvider = CPUSensorProvider(), autoRefresh: Bool = true) {
         self.provider = provider
+        self.autoRefresh = autoRefresh
         refresh()
-        startTimer()
+        if autoRefresh {
+            startTimer()
+        }
     }
 
     deinit {

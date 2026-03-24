@@ -126,16 +126,16 @@ Settings → About → **Check for Updates** → Download → **Install & Relaun
 
 ```bash
 # 1. Bump CFBundleShortVersionString in Info.plist (e.g. "1.1")
-# 2. Build a release zip containing Therma.app at the root
-bash create_dmg.sh
+# 2. Build and verify a clean release zip
+bash scripts/build_release_zip.sh
 
-# 3. Create a GitHub Release tagged vX.Y.Z and attach the zip
-gh release create v1.1 Therma-1.1.zip \
+# 3. Create a GitHub Release tagged vX.Y.Z and attach the zip from dist/
+gh release create v1.1 dist/Therma-1.1.zip \
   --title "Therma 1.1" \
   --notes "What changed."
 ```
 
-The zip **must** be named `Therma-<version>.zip` and contain `Therma.app` at its root. The updater downloads, unzips, ad-hoc codesigns, and hot-swaps the running app.
+The release script creates a zip named `Therma-<version>.zip`, keeps `Therma.app` at the archive root, strips update-breaking metadata, applies ad-hoc signing, and runs the updater dry-run verifier before you upload the asset.
 
 ---
 

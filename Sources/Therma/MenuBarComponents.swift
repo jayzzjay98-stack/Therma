@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 struct MenuStatBox: View {
+    @Environment(\.appTheme) private var theme
     let label: String
     let value: String
     let isOk: Bool
@@ -25,9 +26,7 @@ struct MenuStatBox: View {
     }
 
     private var valueColor: Color {
-        isOk
-            ? Color(red: 0.35, green: 0.92, blue: 0.62)
-            : .white.opacity(0.88)
+        isOk ? theme.accent : .white.opacity(0.88)
     }
 
     private var cardBackground: some View {
@@ -69,6 +68,7 @@ struct NetworkActivityCard: View {
 }
 
 struct CPUSectionView: View {
+    @Environment(\.appTheme) private var theme
     let cpuMonitor: CPUMonitor
     let systemMetricsMonitor: SystemMetricsMonitor
     let preferences: MenuBarPreferences
@@ -115,7 +115,7 @@ struct CPUSectionView: View {
     private var cpuTrendColor: Color {
         guard let delta = cpuMonitor.trendDelta else { return .white.opacity(0.65) }
         if abs(delta) < 0.2 { return .white.opacity(0.65) }
-        return delta > 0 ? Color(red: 1.0, green: 0.68, blue: 0.34) : Color(red: 0.45, green: 0.88, blue: 0.72)
+        return delta > 0 ? Color(red: 1.0, green: 0.68, blue: 0.34) : theme.accent
     }
 
     private var batteryStatusText: String {
@@ -290,6 +290,7 @@ struct CPUSectionView: View {
 }
 
 struct ThemeStripView: View {
+    @Environment(\.appTheme) private var theme
     @Binding var selectedThemeName: String
     let statusMessage: String?
     let statusIsSuccess: Bool
@@ -304,9 +305,7 @@ struct ThemeStripView: View {
                 Text(msg.components(separatedBy: "\n").first ?? msg)
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundStyle(
-                        statusIsSuccess
-                            ? Color(red: 0.29, green: 0.87, blue: 0.5)
-                            : .red
+                        statusIsSuccess ? theme.accent : .red
                     )
                     .lineLimit(1)
                     .padding(.horizontal, 12)

@@ -27,6 +27,7 @@ final class UpdateManager: ObservableObject {
 
     // ✏️ Change to your actual GitHub repo path before releasing.
     private let apiURL = URL(string: "https://api.github.com/repos/jayzzjay98-stack/Therma/releases/latest")!
+    private let expectedBundleName = "Therma.app"
 
     func resetToIdle() { state = .idle }
 
@@ -36,7 +37,7 @@ final class UpdateManager: ObservableObject {
             do {
                 let (latest, downloadURL) = try await fetchLatestRelease()
                 let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
-                if versionIsNewer(latest, than: current) {
+                if Self.versionIsNewer(latest, than: current) {
                     state = .available(version: latest, downloadURL: downloadURL)
                 } else {
                     state = .upToDate
@@ -103,8 +104,7 @@ final class UpdateManager: ObservableObject {
 
         let assets = json["assets"] as? [[String: Any]] ?? []
         guard
-            let asset       = assets.first(where: { ($0["name"] as? String)?.hasSuffix(".zip") == true }),
-            let downloadURL = asset["browser_download_url"] as? String
+            let downloadURL = Self.preferredZipAssetDownloadURL(in: assets, version: version)
         else { throw UpdateError.noAsset }
 
         return (version, downloadURL)
@@ -113,7 +113,7 @@ final class UpdateManager: ObservableObject {
     private func download(from url: URL) async throws -> URL {
         let (tempURL, _) = try await URLSession.shared.download(from: url)
         let dest = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Therma-update.zip")
+            .appendingPathComponent("Therma-update-\(UUID().uuidString).zip")
         try? FileManager.default.removeItem(at: dest)
         try FileManager.default.moveItem(at: tempURL, to: dest)
         return dest
@@ -124,41 +124,86 @@ final class UpdateManager: ObservableObject {
             .appendingPathComponent("Therma-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: workDir, withIntermediateDirectories: true)
 
-        try await run("/usr/bin/unzip", ["-q", "-o", zipURL.path, "-d", workDir.path])
+        try await run("/usr/bin/ditto", ["-x", "-k", "--noqtn", zipURL.path, workDir.path])
 
-        let items = try FileManager.default.contentsOfDirectory(
-            at: workDir, includingPropertiesForKeys: [.isDirectoryKey]
-        )
-        guard let newApp = items.first(where: { $0.pathExtension == "app" }) else {
-            throw UpdateError.noAppBundle
+        let newApp = try Self.findAppBundle(in: workDir, named: expectedBundleName)
+        try Self.sanitizeExtractedBundle(at: newApp)
+        guard Self.bundleLooksValid(at: newApp, expectedName: expectedBundleName) else {
+            throw UpdateError.invalidAppBundle
         }
 
         try? await run("/usr/bin/xattr", ["-rd", "com.apple.quarantine", newApp.path])
-        try await run("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", newApp.path])
+        do {
+            try await verifySignature(of: newApp)
+        } catch {
+            try await run("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", newApp.path])
+            try await verifySignature(of: newApp)
+        }
 
-        let installPath = Bundle.main.bundleURL.path
-        let script = """
-        #!/bin/bash
-        sleep 1.5
-        rm -rf \(shellEscape(installPath))
-        cp -R \(shellEscape(newApp.path)) \(shellEscape(installPath))
-        /usr/bin/codesign --force --deep --sign - \(shellEscape(installPath)) 2>/dev/null
-        open \(shellEscape(installPath))
-        """
-
-        let scriptPath = workDir.appendingPathComponent("replace.sh").path
-        try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+        let installPath = Bundle.main.bundleURL
+        let scriptURL = try writeInstallScript(
+            replacing: installPath,
+            with: newApp,
+            workDir: workDir
+        )
         try FileManager.default.setAttributes(
             [.posixPermissions: NSNumber(value: Int16(0o755))],
-            ofItemAtPath: scriptPath
+            ofItemAtPath: scriptURL.path
         )
 
         let launcher = Process()
         launcher.executableURL = URL(fileURLWithPath: "/bin/bash")
-        launcher.arguments = [scriptPath]
+        launcher.arguments = [scriptURL.path]
         try launcher.run()
 
         NSApp.terminate(nil)
+    }
+
+    private func verifySignature(of appURL: URL) async throws {
+        try await run("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", appURL.path])
+    }
+
+    private func writeInstallScript(replacing installURL: URL, with newApp: URL, workDir: URL) throws -> URL {
+        let installPath = installURL.path
+        let parentURL = installURL.deletingLastPathComponent()
+        let stagedURL = parentURL.appendingPathComponent("\(installURL.lastPathComponent).update")
+        let backupURL = parentURL.appendingPathComponent("\(installURL.lastPathComponent).backup")
+        let script = """
+        #!/bin/bash
+        set -euo pipefail
+        INSTALL_PATH=\(shellEscape(installPath))
+        SOURCE_PATH=\(shellEscape(newApp.path))
+        STAGED_PATH=\(shellEscape(stagedURL.path))
+        BACKUP_PATH=\(shellEscape(backupURL.path))
+        WORK_DIR=\(shellEscape(workDir.path))
+
+        cleanup() {
+          if [ -d "$BACKUP_PATH" ] && [ ! -d "$INSTALL_PATH" ]; then
+            mv "$BACKUP_PATH" "$INSTALL_PATH"
+          fi
+          rm -rf "$STAGED_PATH"
+        }
+        trap cleanup EXIT
+
+        sleep 1.5
+        rm -rf "$STAGED_PATH" "$BACKUP_PATH"
+        /usr/bin/ditto "$SOURCE_PATH" "$STAGED_PATH"
+        /usr/bin/xattr -rd com.apple.quarantine "$STAGED_PATH" >/dev/null 2>&1 || true
+        /usr/bin/codesign --verify --deep --strict "$STAGED_PATH" >/dev/null 2>&1 || /usr/bin/codesign --force --deep --sign - "$STAGED_PATH"
+
+        if [ -d "$INSTALL_PATH" ]; then
+          mv "$INSTALL_PATH" "$BACKUP_PATH"
+        fi
+        mv "$STAGED_PATH" "$INSTALL_PATH"
+
+        trap - EXIT
+        rm -rf "$BACKUP_PATH" "$WORK_DIR"
+        open "$INSTALL_PATH"
+        """
+
+        let scriptURL = workDir.appendingPathComponent("replace.sh")
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        return scriptURL
     }
 
     private func run(_ executable: String, _ args: [String]) async throws {
@@ -166,14 +211,14 @@ final class UpdateManager: ObservableObject {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: executable)
             p.arguments = args
-            let errPipe = Pipe()
-            p.standardOutput = Pipe()
-            p.standardError  = errPipe
+            let outputPipe = Pipe()
+            p.standardOutput = outputPipe
+            p.standardError  = outputPipe
             p.terminationHandler = { proc in
+                let out = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
                 if proc.terminationStatus == 0 {
                     cont.resume()
                 } else {
-                    let out = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
                     cont.resume(throwing: UpdateError.processFailed(executable, out))
                 }
             }
@@ -186,7 +231,7 @@ final class UpdateManager: ObservableObject {
         "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
-    private func versionIsNewer(_ new: String, than current: String) -> Bool {
+    nonisolated static func versionIsNewer(_ new: String, than current: String) -> Bool {
         let parse: (String) -> [Int] = { $0.split(separator: ".").compactMap { Int($0) } }
         let n = parse(new), c = parse(current)
         let count = max(n.count, c.count)
@@ -194,12 +239,91 @@ final class UpdateManager: ObservableObject {
         let cPad = c + Array(repeating: 0, count: count - c.count)
         return zip(nPad, cPad).first { $0 != $1 }.map { $0 > $1 } ?? false
     }
+
+    nonisolated static func preferredZipAssetDownloadURL(in assets: [[String: Any]], version: String) -> String? {
+        let zipAssets = assets.compactMap { asset -> (name: String, url: String)? in
+            guard
+                let name = asset["name"] as? String,
+                name.hasSuffix(".zip"),
+                let url = asset["browser_download_url"] as? String
+            else { return nil }
+            return (name, url)
+        }
+
+        if let exactMatch = zipAssets.first(where: { $0.name == "Therma-\(version).zip" }) {
+            return exactMatch.url
+        }
+
+        if zipAssets.count == 1 {
+            return zipAssets[0].url
+        }
+
+        return nil
+    }
+
+    nonisolated static func findAppBundle(in directory: URL, named expectedName: String) throws -> URL {
+        guard let enumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsPackageDescendants],
+            errorHandler: nil
+        ) else {
+            throw UpdateError.noAppBundle
+        }
+
+        var exactMatches: [URL] = []
+        var appMatches: [URL] = []
+
+        for case let fileURL as URL in enumerator {
+            guard fileURL.pathExtension == "app" else { continue }
+            appMatches.append(fileURL)
+            if fileURL.lastPathComponent == expectedName {
+                exactMatches.append(fileURL)
+            }
+        }
+
+        let candidates = exactMatches.isEmpty ? appMatches : exactMatches
+        guard candidates.count == 1, let match = candidates.first else {
+            throw candidates.isEmpty ? UpdateError.noAppBundle : UpdateError.ambiguousAppBundle
+        }
+        return match
+    }
+
+    nonisolated static func sanitizeExtractedBundle(at appURL: URL) throws {
+        let fileManager = FileManager.default
+        let relativePaths = try fileManager.subpathsOfDirectory(atPath: appURL.path)
+
+        for relativePath in relativePaths {
+            let fileURL = appURL.appendingPathComponent(relativePath)
+            let name = fileURL.lastPathComponent
+            if name == ".DS_Store" || name.hasPrefix("._") {
+                try? fileManager.removeItem(at: fileURL)
+            }
+        }
+    }
+
+    nonisolated static func bundleLooksValid(at appURL: URL, expectedName: String = "Therma.app") -> Bool {
+        let fileManager = FileManager.default
+        guard appURL.lastPathComponent == expectedName else { return false }
+
+        let contentsURL = appURL.appendingPathComponent("Contents", isDirectory: true)
+        let infoPlistURL = contentsURL.appendingPathComponent("Info.plist")
+        guard fileManager.fileExists(atPath: infoPlistURL.path) else { return false }
+        guard let bundle = Bundle(url: appURL) else { return false }
+        guard let executableName = bundle.object(forInfoDictionaryKey: "CFBundleExecutable") as? String,
+              !executableName.isEmpty else { return false }
+
+        let executableURL = contentsURL
+            .appendingPathComponent("MacOS", isDirectory: true)
+            .appendingPathComponent(executableName)
+        return fileManager.fileExists(atPath: executableURL.path)
+    }
 }
 
 // MARK: - Errors
 
 private enum UpdateError: LocalizedError {
-    case noRelease, parseError, noAsset, noAppBundle
+    case noRelease, parseError, noAsset, noAppBundle, ambiguousAppBundle, invalidAppBundle
     case processFailed(String, String)
 
     var errorDescription: String? {
@@ -208,6 +332,8 @@ private enum UpdateError: LocalizedError {
         case .parseError:             return "Could not read release info from GitHub."
         case .noAsset:                return "Release has no downloadable package."
         case .noAppBundle:            return "Downloaded package did not contain Therma.app."
+        case .ambiguousAppBundle:     return "Downloaded package contained multiple app bundles."
+        case .invalidAppBundle:       return "Downloaded app bundle is incomplete."
         case .processFailed(_, let o): return o.isEmpty ? "Update step failed." : o.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }

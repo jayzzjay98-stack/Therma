@@ -11,9 +11,9 @@ enum SettingsLayoutMetrics {
     static let dashboardGridSpacing: CGFloat = 14
     static let dashboardCanvasHeight: CGFloat = dashboardCardHeight * 2 + dashboardGridSpacing
 
-    static let backgroundGlowRadius: CGFloat   = 280
-    static let backgroundGlowRadiusBlue: CGFloat   = 380
-    static let backgroundGlowRadiusPurple: CGFloat = 300
+    static let backgroundGlowRadius: CGFloat       = 280
+    static let backgroundGlowRadiusBlue: CGFloat   = 600
+    static let backgroundGlowRadiusPurple: CGFloat = 520
     static let backgroundGlowRadiusWarm: CGFloat   = 200
     static let modePickerWidth: CGFloat = 200
     static let menuBarSourceListWidth: CGFloat = 196

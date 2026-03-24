@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Menu Bar View
 
 struct MenuBarView: View {
+    private static let processMonitoringSource = "menu-bar-popover"
 
     let ramMonitor: RAMMonitor
     let cpuMonitor: CPUMonitor
@@ -15,11 +16,7 @@ struct MenuBarView: View {
     @State private var statusMessage: String?
     @State private var statusIsSuccess = false
     @State private var cleanTimedOut = false
-    @AppStorage("selectedThemeName") private var selectedThemeName: String = ThemeRegistry.all[0].name
-
-    private var theme: AppTheme {
-        ThemeRegistry.all.first { $0.name == selectedThemeName } ?? ThemeRegistry.all[0]
-    }
+    private let theme = AppTheme.midnightAurora
 
     private var displayMode: MonitorDisplayMode {
         displayModeOverride ?? preferences.displayMode
@@ -34,13 +31,15 @@ struct MenuBarView: View {
                 processesSection
                 actionButtons
             }
-            themeSection
             footerSection
         }
         .frame(width: Constants.menuBarWidth)
         .background(theme.bgColor)
+        .environment(\.appTheme, theme)
         .onAppear { updateForegroundTimer(for: displayMode) }
-        .onDisappear { ramMonitor.stopForegroundTimer() }
+        .onDisappear {
+            ramMonitor.setProcessMonitoring(false, source: Self.processMonitoringSource)
+        }
         .onChange(of: displayMode) { _, newValue in
             updateForegroundTimer(for: newValue)
         }
@@ -361,14 +360,6 @@ struct MenuBarView: View {
         .padding(.bottom, 6)
     }
 
-    private var themeSection: some View {
-        ThemeStripView(
-            selectedThemeName: $selectedThemeName,
-            statusMessage: statusMessage,
-            statusIsSuccess: statusIsSuccess
-        )
-    }
-
     private var footerSection: some View {
         MenuFooterBar(openSettingsAction: openSettingsAction)
     }
@@ -402,11 +393,7 @@ struct MenuBarView: View {
     }
 
     private func updateForegroundTimer(for mode: MonitorDisplayMode) {
-        if mode.showsMemory {
-            ramMonitor.startForegroundTimer()
-        } else {
-            ramMonitor.stopForegroundTimer()
-        }
+        ramMonitor.setProcessMonitoring(mode.showsMemory, source: Self.processMonitoringSource)
     }
 
     private func performClean() {

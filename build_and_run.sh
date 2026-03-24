@@ -1,35 +1,13 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-APP_NAME="Therma"
-APP_BUNDLE="${APP_NAME}.app"
-BUILD_DIR=".build/release"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_BUNDLE="$PROJECT_ROOT/Therma.app"
 
-echo "🔨 Building ${APP_NAME} (release)..."
-swift build -c release
-
-echo "📦 Creating app bundle..."
-
-# Create .app bundle structure
-rm -rf "${APP_BUNDLE}"
-mkdir -p "${APP_BUNDLE}/Contents/MacOS"
-mkdir -p "${APP_BUNDLE}/Contents/Resources"
-
-# Copy executable
-cp "${BUILD_DIR}/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
-
-# Copy Info.plist
-cp "Info.plist" "${APP_BUNDLE}/Contents/"
-
-# Copy AppIcon.icns if it exists
-if [ -f "AppIcon.icns" ]; then
-    cp "AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/"
-fi
-
-# Create PkgInfo
-echo -n "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
+echo "🔨 Building Therma (release)..."
+bash "$PROJECT_ROOT/scripts/build_app_bundle.sh" --configuration release --output "$APP_BUNDLE"
 
 echo "✅ Built ${APP_BUNDLE} successfully!"
 echo ""
 echo "🚀 Launching..."
-open "${APP_BUNDLE}"
+open "$APP_BUNDLE"

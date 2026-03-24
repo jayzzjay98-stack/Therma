@@ -24,8 +24,8 @@ final class ConstantsTests: XCTestCase {
         XCTAssertGreaterThan(Constants.cpuRefreshInterval, 0)
     }
 
-    func test_powerTelemetryRefreshInterval_isOneSecond() {
-        XCTAssertEqual(Constants.powerTelemetryRefreshInterval, 1.0)
+    func test_systemMetricsRefreshInterval_isOneSecond() {
+        XCTAssertEqual(Constants.systemMetricsRefreshInterval, 1.0)
     }
 }
 
@@ -83,8 +83,6 @@ final class MenuBarPreferencesTests: XCTestCase {
         preferences.cpuMenuBarTextSize = 17
         preferences.cpuUsageMenuBarIconSize = 14
         preferences.cpuUsageMenuBarTextSize = 15
-        preferences.powerMenuBarIconSize = 18
-        preferences.powerMenuBarTextSize = 19
 
         XCTAssertEqual(preferences.iconSize(for: .memory), 10)
         XCTAssertEqual(preferences.textSize(for: .memory), 11)
@@ -94,8 +92,6 @@ final class MenuBarPreferencesTests: XCTestCase {
         XCTAssertEqual(preferences.textSize(for: .cpu), 17)
         XCTAssertEqual(preferences.iconSize(for: .cpuUsage), 14)
         XCTAssertEqual(preferences.textSize(for: .cpuUsage), 15)
-        XCTAssertEqual(preferences.iconSize(for: .power), 18)
-        XCTAssertEqual(preferences.textSize(for: .power), 19)
     }
 
     func test_metricItems_defaultToVisible() {
@@ -105,9 +101,10 @@ final class MenuBarPreferencesTests: XCTestCase {
 
         let preferences = MenuBarPreferences(userDefaults: defaults)
 
+        XCTAssertTrue(preferences.isVisible(.memory))
         XCTAssertTrue(preferences.isVisible(.network))
+        XCTAssertFalse(preferences.isVisible(.cpu))
         XCTAssertTrue(preferences.isVisible(.cpuUsage))
-        XCTAssertTrue(preferences.isVisible(.power))
     }
 
     func test_reset_restoresMetricItemVisibility() {
@@ -116,15 +113,28 @@ final class MenuBarPreferencesTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
         let preferences = MenuBarPreferences(userDefaults: defaults)
+        preferences.setVisible(false, for: .memory)
         preferences.setVisible(false, for: .network)
+        preferences.setVisible(false, for: .cpu)
         preferences.setVisible(false, for: .cpuUsage)
-        preferences.setVisible(false, for: .power)
 
         preferences.reset()
 
+        XCTAssertTrue(preferences.isVisible(.memory))
         XCTAssertTrue(preferences.isVisible(.network))
+        XCTAssertTrue(preferences.isVisible(.cpu))
         XCTAssertTrue(preferences.isVisible(.cpuUsage))
-        XCTAssertTrue(preferences.isVisible(.power))
+    }
+
+    func test_formatCelsius_usesFahrenheitWhenEnabled() {
+        let suiteName = "ThermaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let preferences = MenuBarPreferences(userDefaults: defaults)
+        preferences.temperatureInFahrenheit = true
+
+        XCTAssertEqual(preferences.formatCelsius(30), "86°F")
     }
 
     func test_visibilityGuard_keepsAtLeastOneItemVisible() {
@@ -151,39 +161,134 @@ final class SystemMetricsFormattingTests: XCTestCase {
     }
 
     func test_throughputFormatter_formatsMegabytes() {
-        XCTAssertEqual(ThroughputFormatter.string(for: 1_572_864), "1.5 MB/s")
+        XCTAssertEqual(ThroughputFormatter.string(for: 1_572_864), "1.50 MB/s")
     }
 
     func test_throughputFormatter_formatsCompactMegabytes() {
-        XCTAssertEqual(ThroughputFormatter.compactString(for: 1_572_864), "1.5M")
+        XCTAssertEqual(ThroughputFormatter.compactString(for: 1_572_864), "1.50M")
     }
 
-    func test_powerTelemetryParser_parsesNSNumber() {
-        XCTAssertEqual(PowerTelemetryParser.parseMilliwatts(NSNumber(value: 15234)), 15234)
+    func test_throughputFormatter_formatsInvalidInputAsPlaceholder() {
+        XCTAssertEqual(ThroughputFormatter.string(for: nil), "--")
     }
 
-    func test_powerTelemetryParser_parsesString() {
-        XCTAssertEqual(PowerTelemetryParser.parseMilliwatts("15234"), 15234)
+    func test_networkMenuBarItem_title_matchesCurrentProduct() {
+        XCTAssertEqual(MenuBarItem.network.title, "Network")
+    }
+}
+
+// MARK: - Update Manager Versioning Tests
+
+final class UpdateManagerVersioningTests: XCTestCase {
+
+    func test_versionIsNewer_detectsHigherPatchVersion() {
+        XCTAssertTrue(UpdateManager.versionIsNewer("1.2.1", than: "1.2.0"))
     }
 
-    func test_powerTelemetryParser_normalizesWrappedUnsignedValue() {
-        XCTAssertEqual(PowerTelemetryParser.parseMilliwatts("18446744073709551034"), -582)
+    func test_versionIsNewer_treatsMissingSegmentsAsZero() {
+        XCTAssertFalse(UpdateManager.versionIsNewer("1.2", than: "1.2.0"))
     }
 
-    func test_powerMenuItem_title_isSystemPower() {
-        XCTAssertEqual(MenuBarItem.power.title, "System Power")
+    func test_versionIsNewer_rejectsOlderVersion() {
+        XCTAssertFalse(UpdateManager.versionIsNewer("1.9.9", than: "2.0.0"))
     }
 
-    func test_powermetricsPlistParser_extractsCombinedPower() throws {
-        let plist: [String: Any] = [
-            "processor": [
-                "combined_power": 8733.11
-            ]
+    func test_preferredZipAssetDownloadURL_prefersExactVersionedAsset() {
+        let assets: [[String: Any]] = [
+            ["name": "Therma-nightly.zip", "browser_download_url": "https://example.com/nightly.zip"],
+            ["name": "Therma-1.2.1.zip", "browser_download_url": "https://example.com/1.2.1.zip"]
         ]
-        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
 
-        let watts = try XCTUnwrap(PowermetricsPlistParser.parseWatts(from: data))
-        XCTAssertEqual(watts, 8.73311, accuracy: 0.00001)
+        XCTAssertEqual(
+            UpdateManager.preferredZipAssetDownloadURL(in: assets, version: "1.2.1"),
+            "https://example.com/1.2.1.zip"
+        )
+    }
+
+    func test_preferredZipAssetDownloadURL_fallsBackToSingleZipAsset() {
+        let assets: [[String: Any]] = [
+            ["name": "Therma-latest.zip", "browser_download_url": "https://example.com/latest.zip"]
+        ]
+
+        XCTAssertEqual(
+            UpdateManager.preferredZipAssetDownloadURL(in: assets, version: "1.2.1"),
+            "https://example.com/latest.zip"
+        )
+    }
+
+    func test_preferredZipAssetDownloadURL_rejectsAmbiguousZipAssets() {
+        let assets: [[String: Any]] = [
+            ["name": "Therma-nightly.zip", "browser_download_url": "https://example.com/nightly.zip"],
+            ["name": "Therma-stable.zip", "browser_download_url": "https://example.com/stable.zip"]
+        ]
+
+        XCTAssertNil(UpdateManager.preferredZipAssetDownloadURL(in: assets, version: "1.2.1"))
+    }
+
+    func test_findAppBundle_prefersExpectedThermaBundle() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        _ = try makeAppBundle(named: "Other.app", executableName: "Other", in: root)
+        let expected = try makeAppBundle(named: "Therma.app", executableName: "Therma", in: root)
+
+        let found = try UpdateManager.findAppBundle(in: root, named: "Therma.app")
+        XCTAssertEqual(found.lastPathComponent, expected.lastPathComponent)
+    }
+
+    func test_bundleLooksValid_rejectsBundleWithoutExecutable() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let appURL = root.appendingPathComponent("Therma.app", isDirectory: true)
+        let contentsURL = appURL.appendingPathComponent("Contents", isDirectory: true)
+        try FileManager.default.createDirectory(at: contentsURL, withIntermediateDirectories: true)
+
+        let plist: [String: Any] = [
+            "CFBundleExecutable": "Therma",
+            "CFBundleIdentifier": "com.example.therma"
+        ]
+        let plistData = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        try plistData.write(to: contentsURL.appendingPathComponent("Info.plist"))
+
+        XCTAssertFalse(UpdateManager.bundleLooksValid(at: appURL))
+    }
+
+    func test_sanitizeExtractedBundle_removesAppleDoubleFiles() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let appURL = try makeAppBundle(named: "Therma.app", executableName: "Therma", in: root)
+        let appleDouble = appURL.appendingPathComponent("Contents").appendingPathComponent("._Info.plist")
+        FileManager.default.createFile(atPath: appleDouble.path, contents: Data("junk".utf8), attributes: nil)
+
+        try UpdateManager.sanitizeExtractedBundle(at: appURL)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: appleDouble.path))
+    }
+
+    private func makeTemporaryDirectory() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    @discardableResult
+    private func makeAppBundle(named name: String, executableName: String, in directory: URL) throws -> URL {
+        let appURL = directory.appendingPathComponent(name, isDirectory: true)
+        let contentsURL = appURL.appendingPathComponent("Contents", isDirectory: true)
+        let macOSURL = contentsURL.appendingPathComponent("MacOS", isDirectory: true)
+        try FileManager.default.createDirectory(at: macOSURL, withIntermediateDirectories: true)
+
+        let plist: [String: Any] = [
+            "CFBundleExecutable": executableName,
+            "CFBundleIdentifier": "com.example.\(name.replacingOccurrences(of: ".app", with: "").lowercased())"
+        ]
+        let plistData = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        try plistData.write(to: contentsURL.appendingPathComponent("Info.plist"))
+
+        FileManager.default.createFile(atPath: macOSURL.appendingPathComponent(executableName).path, contents: Data(), attributes: nil)
+        return appURL
     }
 }
 

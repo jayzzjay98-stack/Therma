@@ -41,11 +41,15 @@ final class SystemMetricsMonitor {
 
     private let cpuUsageProvider = CPUUsageProvider()
     private let networkProvider = NetworkThroughputProvider()
+    private let autoRefresh: Bool
     private var refreshTimer: Timer?
 
-    init() {
+    init(autoRefresh: Bool = true) {
+        self.autoRefresh = autoRefresh
         refresh()
-        startTimer()
+        if autoRefresh {
+            startTimer()
+        }
     }
 
     deinit {

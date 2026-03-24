@@ -16,8 +16,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     private lazy var memoryHostingController = makeHostingController(for: .memory)
     private lazy var cpuHostingController = makeHostingController(for: .cpu)
     private var settingsWindow: NSWindow?
-
-    private var refreshTimer: Timer?
+    private var observers: [NSObjectProtocol] = []
     private var lastStatusText: [MenuBarItem: String] = [:]
 
     init(context: AppContext) {
@@ -27,12 +26,14 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         configurePopover(memoryPopover, mode: .memory)
         configurePopover(cpuPopover, mode: .cpu)
         configureButtons()
+        registerObservers()
         refreshStatusItems()
-        startRefreshTimer()
     }
 
     deinit {
-        refreshTimer?.invalidate()
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     private var statusItems: [(item: MenuBarItem, statusItem: NSStatusItem)] {
@@ -90,16 +91,18 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         }
     }
 
-    private func startRefreshTimer() {
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.refreshStatusItems()
+    private func registerObservers() {
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: .thermaStatusBarDidChange,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshStatusItems()
+                }
             }
-        }
-
-        if let refreshTimer {
-            RunLoop.main.add(refreshTimer, forMode: .common)
-        }
+        )
     }
 
     private func refreshStatusItems() {

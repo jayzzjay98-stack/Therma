@@ -1,9 +1,18 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="Therma"
 APP_BUNDLE="${APP_NAME}.app"
 INSTALL_DIR="/Applications"
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/therma-install.XXXXXX")"
+LOCAL_APP_PATH="$WORK_DIR/$APP_BUNDLE"
+
+cleanup() {
+    [[ -d "$WORK_DIR" ]] && rm -rf "$WORK_DIR"
+}
+
+trap cleanup EXIT
 
 echo ""
 echo "╔══════════════════════════════════════╗"
@@ -12,57 +21,28 @@ echo "╚═══════════════════════�
 echo ""
 
 # Step 1: Build
-echo "⏳ [1/4] Building..."
-swift build -c release 2>&1 | tail -1
+echo "⏳ [1/4] Building clean app bundle..."
+bash "$PROJECT_ROOT/scripts/build_app_bundle.sh" --configuration release --output "$LOCAL_APP_PATH"
 echo "   ✅ Build complete"
 
-# Step 2: Create .app bundle
-echo "⏳ [2/4] Creating app bundle..."
-rm -rf "${APP_BUNDLE}"
-mkdir -p "${APP_BUNDLE}/Contents/MacOS"
-mkdir -p "${APP_BUNDLE}/Contents/Resources"
-
-# Copy release binary
-cp ".build/release/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
-
-# Copy app icon
-if [ -f "AppIcon.icns" ]; then
-    cp "AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
-fi
-
-# Copy Info.plist from project root
-cp "Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
-
-echo -n "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
-
-# Embed Sparkle.framework
-mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
-cp -R ".build/arm64-apple-macosx/release/Sparkle.framework" "${APP_BUNDLE}/Contents/Frameworks/"
-
-# Add rpath so the binary can find the embedded Sparkle
-install_name_tool -add_rpath "@executable_path/../Frameworks" \
-    "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
-
-echo "   ✅ App bundle created"
-
 # Step 3: Install to /Applications
-echo "⏳ [3/4] Installing to ${INSTALL_DIR}..."
+echo "⏳ [2/4] Installing to ${INSTALL_DIR}..."
 
 pkill -x "${APP_NAME}" 2>/dev/null || true
 sleep 0.5
 
 if [ -w "${INSTALL_DIR}" ]; then
     rm -rf "${INSTALL_DIR}/${APP_BUNDLE}"
-    cp -R "${APP_BUNDLE}" "${INSTALL_DIR}/"
+    /usr/bin/ditto "$LOCAL_APP_PATH" "${INSTALL_DIR}/${APP_BUNDLE}"
 else
     echo "   (requires admin password)"
     sudo rm -rf "${INSTALL_DIR}/${APP_BUNDLE}"
-    sudo cp -R "${APP_BUNDLE}" "${INSTALL_DIR}/"
+    sudo /usr/bin/ditto "$LOCAL_APP_PATH" "${INSTALL_DIR}/${APP_BUNDLE}"
 fi
 echo "   ✅ Installed to ${INSTALL_DIR}/${APP_BUNDLE}"
 
 # Step 4: Add to Login Items (Launch at startup)
-echo "⏳ [4/4] Setting up auto-launch at login..."
+echo "⏳ [3/4] Setting up auto-launch at login..."
 osascript -e "
 tell application \"System Events\"
     try
@@ -74,8 +54,10 @@ end tell
     && echo "   ✅ Added to Login Items (auto-start on boot)" \
     || echo "   ⚠️  Could not add to Login Items (add manually in System Settings)"
 
-# Clean up local bundle
-rm -rf "${APP_BUNDLE}"
+echo "⏳ [4/4] Verifying installed bundle..."
+/usr/bin/codesign --verify --deep --strict "${INSTALL_DIR}/${APP_BUNDLE}" >/dev/null \
+    && echo "   ✅ Installed bundle verified" \
+    || echo "   ⚠️  Installed bundle could not be verified"
 
 echo ""
 echo "╔══════════════════════════════════════╗"

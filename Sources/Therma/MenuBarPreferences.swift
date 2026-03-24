@@ -85,60 +85,95 @@ final class MenuBarPreferences {
         didSet {
             UserDefaults.standard.set(memoryMenuBarVisible, forKey: Keys.memoryVisible)
             syncLegacyDisplayMode()
+            notifyStatusBarChange()
         }
     }
 
     var networkMenuBarVisible: Bool {
-        didSet { UserDefaults.standard.set(networkMenuBarVisible, forKey: Keys.networkVisible) }
+        didSet {
+            UserDefaults.standard.set(networkMenuBarVisible, forKey: Keys.networkVisible)
+            notifyStatusBarChange()
+        }
     }
 
     var cpuMenuBarVisible: Bool {
         didSet {
             UserDefaults.standard.set(cpuMenuBarVisible, forKey: Keys.cpuVisible)
             syncLegacyDisplayMode()
+            notifyStatusBarChange()
         }
     }
 
     var cpuUsageMenuBarVisible: Bool {
-        didSet { UserDefaults.standard.set(cpuUsageMenuBarVisible, forKey: Keys.cpuUsageVisible) }
+        didSet {
+            UserDefaults.standard.set(cpuUsageMenuBarVisible, forKey: Keys.cpuUsageVisible)
+            notifyStatusBarChange()
+        }
     }
 
     var memoryMenuBarIconSize: Double {
-        didSet { UserDefaults.standard.set(memoryMenuBarIconSize, forKey: Keys.memoryIconSize) }
+        didSet {
+            UserDefaults.standard.set(memoryMenuBarIconSize, forKey: Keys.memoryIconSize)
+            notifyStatusBarChange()
+        }
     }
 
     var memoryMenuBarTextSize: Double {
-        didSet { UserDefaults.standard.set(memoryMenuBarTextSize, forKey: Keys.memoryTextSize) }
+        didSet {
+            UserDefaults.standard.set(memoryMenuBarTextSize, forKey: Keys.memoryTextSize)
+            notifyStatusBarChange()
+        }
     }
 
     var networkMenuBarIconSize: Double {
-        didSet { UserDefaults.standard.set(networkMenuBarIconSize, forKey: Keys.networkIconSize) }
+        didSet {
+            UserDefaults.standard.set(networkMenuBarIconSize, forKey: Keys.networkIconSize)
+            notifyStatusBarChange()
+        }
     }
 
     var networkMenuBarTextSize: Double {
-        didSet { UserDefaults.standard.set(networkMenuBarTextSize, forKey: Keys.networkTextSize) }
+        didSet {
+            UserDefaults.standard.set(networkMenuBarTextSize, forKey: Keys.networkTextSize)
+            notifyStatusBarChange()
+        }
     }
 
     var cpuMenuBarIconSize: Double {
-        didSet { UserDefaults.standard.set(cpuMenuBarIconSize, forKey: Keys.cpuIconSize) }
+        didSet {
+            UserDefaults.standard.set(cpuMenuBarIconSize, forKey: Keys.cpuIconSize)
+            notifyStatusBarChange()
+        }
     }
 
     var cpuMenuBarTextSize: Double {
-        didSet { UserDefaults.standard.set(cpuMenuBarTextSize, forKey: Keys.cpuTextSize) }
+        didSet {
+            UserDefaults.standard.set(cpuMenuBarTextSize, forKey: Keys.cpuTextSize)
+            notifyStatusBarChange()
+        }
     }
 
     var cpuUsageMenuBarIconSize: Double {
-        didSet { UserDefaults.standard.set(cpuUsageMenuBarIconSize, forKey: Keys.cpuUsageIconSize) }
+        didSet {
+            UserDefaults.standard.set(cpuUsageMenuBarIconSize, forKey: Keys.cpuUsageIconSize)
+            notifyStatusBarChange()
+        }
     }
 
     var cpuUsageMenuBarTextSize: Double {
-        didSet { UserDefaults.standard.set(cpuUsageMenuBarTextSize, forKey: Keys.cpuUsageTextSize) }
+        didSet {
+            UserDefaults.standard.set(cpuUsageMenuBarTextSize, forKey: Keys.cpuUsageTextSize)
+            notifyStatusBarChange()
+        }
     }
 
     // MARK: - General
 
     var temperatureInFahrenheit: Bool {
-        didSet { UserDefaults.standard.set(temperatureInFahrenheit, forKey: Keys.tempUnit) }
+        didSet {
+            UserDefaults.standard.set(temperatureInFahrenheit, forKey: Keys.tempUnit)
+            notifyStatusBarChange()
+        }
     }
 
     // MARK: - Alerts
@@ -279,6 +314,10 @@ final class MenuBarPreferences {
 
     private static func clamp(_ value: Double, min: Double, max: Double) -> Double {
         Swift.min(Swift.max(value, min), max)
+    }
+
+    private func notifyStatusBarChange() {
+        NotificationCenter.default.post(name: .thermaStatusBarDidChange, object: nil)
     }
 
     var visibleItems: [MenuBarItem] {

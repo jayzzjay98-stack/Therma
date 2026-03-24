@@ -4,34 +4,51 @@ import Foundation
 final class AppContext {
     static let shared = AppContext()
 
-    let ramMonitor    = RAMMonitor()
-    let cpuMonitor    = CPUMonitor()
-    let systemMetricsMonitor = SystemMetricsMonitor()
+    let ramMonitor    = RAMMonitor(autoRefreshStats: false)
+    let cpuMonitor    = CPUMonitor(autoRefresh: false)
+    let systemMetricsMonitor = SystemMetricsMonitor(autoRefresh: false)
     let preferences   = MenuBarPreferences()
     let updateManager = UpdateManager()
     let alertManager  = AlertManager()
 
-    private var alertTimer: Timer?
+    private var refreshCoordinator: Timer?
+    private var refreshTickCount = 0
 
     private init() {
         alertManager.requestPermissionIfNeeded()
-        startAlertTimer()
+        startRefreshCoordinator()
     }
 
-    private func startAlertTimer() {
-        alertTimer = Timer.scheduledTimer(
-            withTimeInterval: Constants.backgroundRefreshInterval,
+    private func startRefreshCoordinator() {
+        refreshCoordinator = Timer.scheduledTimer(
+            withTimeInterval: Constants.systemMetricsRefreshInterval,
             repeats: true
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.alertManager.check(
-                    ramPercent: self.ramMonitor.usagePercent,
-                    cpuCelsius: self.cpuMonitor.currentCelsius,
-                    preferences: self.preferences
-                )
+                self?.handleRefreshTick()
             }
         }
-        RunLoop.main.add(alertTimer!, forMode: .common)
+        RunLoop.main.add(refreshCoordinator!, forMode: .common)
+    }
+
+    private func handleRefreshTick() {
+        refreshTickCount += 1
+
+        systemMetricsMonitor.refresh()
+
+        if refreshTickCount % Int(Constants.backgroundRefreshInterval / Constants.systemMetricsRefreshInterval) == 0 {
+            ramMonitor.refreshStatsOnly()
+            alertManager.check(
+                ramPercent: ramMonitor.usagePercent,
+                cpuCelsius: cpuMonitor.currentCelsius,
+                preferences: preferences
+            )
+        }
+
+        if refreshTickCount % Int(Constants.cpuRefreshInterval / Constants.systemMetricsRefreshInterval) == 0 {
+            cpuMonitor.refresh()
+        }
+
+        NotificationCenter.default.post(name: .thermaStatusBarDidChange, object: nil)
     }
 }
