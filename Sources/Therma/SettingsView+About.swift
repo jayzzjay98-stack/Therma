@@ -331,28 +331,36 @@ extension SettingsView {
     @ViewBuilder
     func aboutFactRow(icon: String, title: String, value: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(0.05))
-                    .frame(width: 34, height: 34)
-
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(selectedTheme.accent)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.56))
-
-                Text(value)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
+            aboutFactIcon(icon)
+            aboutFactLabel(title: title, value: value)
             Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private func aboutFactIcon(_ systemName: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.white.opacity(0.05))
+                .frame(width: 34, height: 34)
+
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(selectedTheme.accent)
+        }
+    }
+
+    @ViewBuilder
+    private func aboutFactLabel(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.56))
+
+            Text(value)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

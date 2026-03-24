@@ -63,9 +63,7 @@ enum Constants {
     static let segmentBarHeight: CGFloat  = 14
     static let segmentItemWidth: CGFloat  = 12
     static let segmentSpacing: CGFloat    = 1.5
-    static let themeItemWidth: CGFloat    = 46
-    static let themeCircleSize: CGFloat   = 36
-    static let themeActiveDotSize: CGFloat = 4
+    static let segmentHeightDropFactor: Double = 0.8
     static let actionButtonHeight: CGFloat = 42
     static let processBarWidth: CGFloat    = 40
     static let defaultMenuBarIconSize: Double = 11
@@ -75,9 +73,49 @@ enum Constants {
     static let minimumMenuBarTextSize: Double = 8
     static let maximumMenuBarTextSize: Double = 22
 
+    // MARK: - Thermal Trace Bar Sizing
+    static let traceBarMinHeight: CGFloat  = 12   // minimum bar height in px
+    static let traceBarHeightRange: CGFloat = 40  // height range above minimum
+
+    // MARK: - Dashboard Layout
+    static let dashboardRowCount: CGFloat = 2     // rows in the dashboard card grid
+
     // MARK: - Version
     // read from bundle so it always matches Info.plist
     static var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+}
+
+// MARK: - Thermal Colour Scale
+//
+// Single source of truth for the five heat-band colours used in both the
+// menu-bar popover and the settings dashboard. Callers keep a thin wrapper
+// (private func thermalColor(for:)) so call-sites stay unchanged.
+
+import SwiftUI
+
+enum ThermalPalette {
+    // Colour bands (low → high temperature)
+    static let cool     = Color(red: 0.30, green: 0.82, blue: 1.00)
+    static let warm     = Color(red: 0.38, green: 0.92, blue: 0.68)
+    static let hot      = Color(red: 0.98, green: 0.85, blue: 0.28)
+    static let veryHot  = Color(red: 1.00, green: 0.58, blue: 0.18)
+    static let critical = Color(red: 1.00, green: 0.28, blue: 0.32)
+
+    // Display thresholds (°C) — separate from alert thresholds in Constants
+    static let warmThreshold:     Double = 50
+    static let hotThreshold:      Double = 65
+    static let veryHotThreshold:  Double = 78
+    static let criticalThreshold: Double = 88
+
+    static func color(for celsius: Double) -> Color {
+        switch celsius {
+        case ..<warmThreshold:     return cool
+        case ..<hotThreshold:      return warm
+        case ..<veryHotThreshold:  return hot
+        case ..<criticalThreshold: return veryHot
+        default:                   return critical
+        }
     }
 }

@@ -340,13 +340,7 @@ struct SettingsView: View {
     }
 
     func thermalColor(for celsius: Double) -> Color {
-        switch celsius {
-        case ..<50:  return Color(red: 0.30, green: 0.82, blue: 1.00)
-        case ..<65:  return Color(red: 0.38, green: 0.92, blue: 0.68)
-        case ..<78:  return Color(red: 0.98, green: 0.85, blue: 0.28)
-        case ..<88:  return Color(red: 1.00, green: 0.58, blue: 0.18)
-        default:     return Color(red: 1.00, green: 0.28, blue: 0.32)
-        }
+        ThermalPalette.color(for: celsius)
     }
 
     func sensorHeatProgress(_ celsius: Double) -> Double {

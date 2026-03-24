@@ -150,15 +150,18 @@ struct TemperatureUnitPicker: View {
         )
     }
 
+    private static let accentColor = AppTheme.midnightAurora.accent
+    private static let deselectedColor = Color(red: 0.35, green: 0.48, blue: 0.54)
+
     private func unitButton(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(selected ? Color(red: 0.369, green: 0.969, blue: 0.910) : Color(red: 0.35, green: 0.48, blue: 0.54))
+                .foregroundStyle(selected ? Self.accentColor : Self.deselectedColor)
                 .frame(width: 36, height: 28)
                 .background(
                     RoundedRectangle(cornerRadius: 7)
-                        .fill(selected ? Color(red: 0.369, green: 0.969, blue: 0.910).opacity(0.14) : Color.clear)
+                        .fill(selected ? Self.accentColor.opacity(0.14) : Color.clear)
                 )
         }
         .buttonStyle(.plain)
@@ -220,18 +223,20 @@ struct MenuBarPreviewChip: View {
 
 struct SettingsMiniSwitch: View {
     let isOn: Bool
+    private static let accent = AppTheme.midnightAurora.accent
+    private static let thumbOff = Color(red: 0.23, green: 0.35, blue: 0.42)
 
     var body: some View {
         ZStack(alignment: isOn ? .trailing : .leading) {
             Capsule()
-                .fill(isOn ? Color(red: 0.369, green: 0.969, blue: 0.910).opacity(0.35) : Color(red: 0.369, green: 0.969, blue: 0.910).opacity(0.10))
+                .fill(Self.accent.opacity(isOn ? 0.35 : 0.10))
                 .frame(width: 36, height: 20)
 
             Circle()
-                .fill(isOn ? Color(red: 0.369, green: 0.969, blue: 0.910) : Color(red: 0.23, green: 0.35, blue: 0.42))
+                .fill(isOn ? Self.accent : Self.thumbOff)
                 .frame(width: 16, height: 16)
                 .padding(2)
-                .shadow(color: isOn ? Color(red: 0.369, green: 0.969, blue: 0.910).opacity(0.4) : .clear, radius: 6)
+                .shadow(color: isOn ? Self.accent.opacity(0.4) : .clear, radius: 6)
         }
     }
 }

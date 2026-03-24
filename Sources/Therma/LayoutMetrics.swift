@@ -9,7 +9,7 @@ enum SettingsLayoutMetrics {
     static let contentHeight: CGFloat  = totalHeight
     static let dashboardCardHeight: CGFloat = 238
     static let dashboardGridSpacing: CGFloat = 14
-    static let dashboardCanvasHeight: CGFloat = dashboardCardHeight * 2 + dashboardGridSpacing
+    static let dashboardCanvasHeight: CGFloat = dashboardCardHeight * Constants.dashboardRowCount + dashboardGridSpacing
 
     static let backgroundGlowRadius: CGFloat       = 280
     static let backgroundGlowRadiusBlue: CGFloat   = 600

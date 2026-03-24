@@ -8,27 +8,27 @@ struct NetworkThroughput {
 
 enum ThroughputFormatter {
     static func string(for bytesPerSecond: Double?) -> String {
-        guard let bytesPerSecond, bytesPerSecond.isFinite, bytesPerSecond >= 0 else { return "--" }
-        switch bytesPerSecond {
-        case ..<1_024:
-            return String(format: "%.0f B/s", bytesPerSecond)
-        case ..<1_048_576:
-            return String(format: "%.1f KB/s", bytesPerSecond / 1_024)
-        default:
-            return String(format: "%.2f MB/s", bytesPerSecond / 1_048_576)
+        guard let bps = validated(bytesPerSecond) else { return "--" }
+        switch bps {
+        case ..<Constants.bytesPerKB:  return String(format: "%.0f B/s", bps)
+        case ..<Constants.bytesPerMB:  return String(format: "%.1f KB/s", bps / Constants.bytesPerKB)
+        default:                       return String(format: "%.2f MB/s", bps / Constants.bytesPerMB)
         }
     }
 
     static func compactString(for bytesPerSecond: Double?) -> String {
-        guard let bytesPerSecond, bytesPerSecond.isFinite, bytesPerSecond >= 0 else { return "--" }
-        switch bytesPerSecond {
-        case ..<1_024:
-            return String(format: "%.0fB", bytesPerSecond)
-        case ..<1_048_576:
-            return String(format: "%.1fK", bytesPerSecond / 1_024)
-        default:
-            return String(format: "%.2fM", bytesPerSecond / 1_048_576)
+        guard let bps = validated(bytesPerSecond) else { return "--" }
+        switch bps {
+        case ..<Constants.bytesPerKB:  return String(format: "%.0fB", bps)
+        case ..<Constants.bytesPerMB:  return String(format: "%.1fK", bps / Constants.bytesPerKB)
+        default:                       return String(format: "%.2fM", bps / Constants.bytesPerMB)
         }
+    }
+
+    // Shared guard: rejects nil, NaN, and negative values
+    private static func validated(_ bytesPerSecond: Double?) -> Double? {
+        guard let v = bytesPerSecond, v.isFinite, v >= 0 else { return nil }
+        return v
     }
 }
 

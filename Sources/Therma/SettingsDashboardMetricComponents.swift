@@ -354,7 +354,7 @@ struct SettingsThermalTrace: View {
     private func normalizedHeight(for value: Double) -> CGFloat {
         let clamped = min(max(value, Constants.cpuNormLow), Constants.cpuNormHigh)
         let normalized = (clamped - Constants.cpuNormLow) / Constants.cpuNormRange
-        return CGFloat(12 + normalized * 40)
+        return Constants.traceBarMinHeight + CGFloat(normalized) * Constants.traceBarHeightRange
     }
 }
 

@@ -160,8 +160,10 @@ struct SettingsGlowingAreaChart: View {
         }
     }
 
+    private static let placeholderValues: [Double] = [0.18, 0.22, 0.20, 0.44, 0.18, 0.75, 0.38]
+
     private var normalizedValues: [Double] {
-        let raw = values.isEmpty ? [0.18, 0.22, 0.20, 0.44, 0.18, 0.75, 0.38] : values
+        let raw = values.isEmpty ? Self.placeholderValues : values
         let minValue = raw.min() ?? 0
         let maxValue = raw.max() ?? 1
         let spread = max(maxValue - minValue, 0.001)

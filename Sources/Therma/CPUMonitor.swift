@@ -153,19 +153,21 @@ final class CPUSensorProvider {
     }
 
     static func parseBatteryCycleCount(_ rawValue: Any) -> Int? {
-        if let value = rawValue as? Int {
-            return value
-        }
+        cycleCountFromInt(rawValue)
+            ?? cycleCountFromNSNumber(rawValue)
+            ?? cycleCountFromString(rawValue)
+    }
 
-        if let value = rawValue as? NSNumber {
-            return value.intValue
-        }
+    private static func cycleCountFromInt(_ value: Any) -> Int? {
+        value as? Int
+    }
 
-        if let value = rawValue as? String {
-            return Int(value)
-        }
+    private static func cycleCountFromNSNumber(_ value: Any) -> Int? {
+        (value as? NSNumber).map { $0.intValue }
+    }
 
-        return nil
+    private static func cycleCountFromString(_ value: Any) -> Int? {
+        (value as? String).flatMap { Int($0) }
     }
 }
 

@@ -163,7 +163,7 @@ struct MenuBarView: View {
 
     private func segmentHeight(_ i: Int, total: Int) -> CGFloat {
         let mid = Double(total) / 2.0
-        return CGFloat(Double(Constants.segmentBarHeight) - abs(Double(i) - mid) * 0.8)
+        return CGFloat(Double(Constants.segmentBarHeight) - abs(Double(i) - mid) * Constants.segmentHeightDropFactor)
     }
 
     private var miniRing: some View {
