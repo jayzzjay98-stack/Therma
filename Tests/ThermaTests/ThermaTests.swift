@@ -193,6 +193,17 @@ final class UpdateManagerVersioningTests: XCTestCase {
         XCTAssertFalse(UpdateManager.versionIsNewer("1.9.9", than: "2.0.0"))
     }
 
+    func test_normalizedDownloadProgress_returnsFraction() {
+        XCTAssertEqual(
+            UpdateManager.normalizedDownloadProgress(totalBytesWritten: 25, expectedTotalBytes: 100),
+            0.25
+        )
+    }
+
+    func test_normalizedDownloadProgress_returnsNilWhenExpectedSizeUnknown() {
+        XCTAssertNil(UpdateManager.normalizedDownloadProgress(totalBytesWritten: 25, expectedTotalBytes: -1))
+    }
+
     func test_preferredZipAssetDownloadURL_prefersExactVersionedAsset() {
         let assets: [[String: Any]] = [
             ["name": "Therma-nightly.zip", "browser_download_url": "https://example.com/nightly.zip"],

@@ -24,14 +24,20 @@ final class UpdateManager: ObservableObject {
     }
 
     @Published var state: State = .idle
+    @Published var downloadProgress: Double?
 
     // ✏️ Change to your actual GitHub repo path before releasing.
     private let apiURL = URL(string: "https://api.github.com/repos/jayzzjay98-stack/Therma/releases/latest")!
     private let expectedBundleName = "Therma.app"
+    private var activeDownloadController: ReleaseDownloadController?
 
-    func resetToIdle() { state = .idle }
+    func resetToIdle() {
+        downloadProgress = nil
+        state = .idle
+    }
 
     func checkForUpdates() {
+        downloadProgress = nil
         state = .checking
         Task {
             do {
@@ -60,18 +66,33 @@ final class UpdateManager: ObservableObject {
             state = .failed("Untrusted download URL.")
             return
         }
+        downloadProgress = 0
         state = .downloading
+        let controller = ReleaseDownloadController()
+        activeDownloadController = controller
         Task {
             do {
-                let zipURL = try await download(from: url)
+                let zipURL = try await controller.download(from: url) { [weak self] progress in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.downloadProgress = progress
+                    }
+                }
+                guard activeDownloadController === controller else { return }
+                activeDownloadController = nil
+                downloadProgress = nil
                 state = .downloaded(version: version, zipURL: zipURL)
             } catch {
+                guard activeDownloadController === controller else { return }
+                activeDownloadController = nil
+                downloadProgress = nil
                 state = .failed(error.localizedDescription)
             }
         }
     }
 
     func installDownloaded(version: String, zipURL: URL) {
+        downloadProgress = nil
         state = .installing
         Task {
             do {
@@ -108,15 +129,6 @@ final class UpdateManager: ObservableObject {
         else { throw UpdateError.noAsset }
 
         return (version, downloadURL)
-    }
-
-    private func download(from url: URL) async throws -> URL {
-        let (tempURL, _) = try await URLSession.shared.download(from: url)
-        let dest = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Therma-update-\(UUID().uuidString).zip")
-        try? FileManager.default.removeItem(at: dest)
-        try FileManager.default.moveItem(at: tempURL, to: dest)
-        return dest
     }
 
     private func installUpdate(from zipURL: URL) async throws {
@@ -240,6 +252,12 @@ final class UpdateManager: ObservableObject {
         return zip(nPad, cPad).first { $0 != $1 }.map { $0 > $1 } ?? false
     }
 
+    nonisolated static func normalizedDownloadProgress(totalBytesWritten: Int64, expectedTotalBytes: Int64) -> Double? {
+        guard expectedTotalBytes > 0 else { return nil }
+        let progress = Double(totalBytesWritten) / Double(expectedTotalBytes)
+        return min(max(progress, 0), 1)
+    }
+
     nonisolated static func preferredZipAssetDownloadURL(in assets: [[String: Any]], version: String) -> String? {
         let zipAssets = assets.compactMap { asset -> (name: String, url: String)? in
             guard
@@ -317,6 +335,74 @@ final class UpdateManager: ObservableObject {
             .appendingPathComponent("MacOS", isDirectory: true)
             .appendingPathComponent(executableName)
         return fileManager.fileExists(atPath: executableURL.path)
+    }
+}
+
+private final class ReleaseDownloadController: NSObject, URLSessionDownloadDelegate {
+    private var continuation: CheckedContinuation<URL, Error>?
+    private var progressHandler: ((Double) -> Void)?
+    private var finished = false
+
+    private lazy var session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.waitsForConnectivity = true
+        return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+    }()
+
+    func download(from url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
+        progressHandler = progress
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            let task = session.downloadTask(with: url)
+            task.resume()
+        }
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        guard
+            let progress = UpdateManager.normalizedDownloadProgress(
+                totalBytesWritten: totalBytesWritten,
+                expectedTotalBytes: totalBytesExpectedToWrite
+            )
+        else { return }
+
+        progressHandler?(progress)
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        guard !finished, let continuation else { return }
+        finished = true
+
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Therma-update-\(UUID().uuidString).zip")
+        try? FileManager.default.removeItem(at: dest)
+
+        do {
+            try FileManager.default.moveItem(at: location, to: dest)
+            continuation.resume(returning: dest)
+        } catch {
+            continuation.resume(throwing: error)
+        }
+
+        self.continuation = nil
+        progressHandler = nil
+        session.finishTasksAndInvalidate()
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard !finished, let error, let continuation else { return }
+        finished = true
+        self.continuation = nil
+        progressHandler = nil
+        continuation.resume(throwing: error)
+        session.invalidateAndCancel()
     }
 }
 

@@ -157,6 +157,10 @@ extension SettingsView {
                                 .foregroundStyle(updateStatusColor.opacity(0.88))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
+
+                        if case .downloading = updateManager.state {
+                            updateDownloadProgressSection
+                        }
                     }
                 }
 
@@ -235,7 +239,7 @@ extension SettingsView {
         case .available:
             return "A matching release asset was found and passed initial URL validation."
         case .downloading:
-            return "The update package is being downloaded before local verification."
+            return "Downloaded \(updateDownloadPercentText) of the verified release package."
         case .downloaded:
             return "The package is stored locally and waiting for install and relaunch."
         case .installing:
@@ -266,7 +270,7 @@ extension SettingsView {
         case .checking, .downloading, .installing:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.mini).scaleEffect(0.85)
-                Text(updateStatusLabel.capitalized)
+                Text(controlStatusLabel)
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.50))
             }
@@ -350,5 +354,41 @@ extension SettingsView {
 
             Spacer(minLength: 0)
         }
+    }
+
+    var updateDownloadPercentText: String {
+        let progress = min(max(updateManager.downloadProgress ?? 0, 0), 1)
+        return "\(Int((progress * 100).rounded()))%"
+    }
+
+    var controlStatusLabel: String {
+        if case .downloading = updateManager.state {
+            return "Downloading \(updateDownloadPercentText)"
+        }
+        return updateStatusLabel.capitalized
+    }
+
+    @ViewBuilder
+    var updateDownloadProgressSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text("Download Progress")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.54))
+                    .tracking(1.2)
+
+                Spacer(minLength: 0)
+
+                Text(updateDownloadPercentText)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(updateStatusColor)
+            }
+
+            ProgressView(value: updateManager.downloadProgress ?? 0, total: 1)
+                .progressViewStyle(.linear)
+                .tint(updateStatusColor)
+                .controlSize(.small)
+        }
+        .padding(.top, 2)
     }
 }
