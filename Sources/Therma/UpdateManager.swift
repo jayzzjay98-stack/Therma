@@ -163,9 +163,10 @@ final class UpdateManager: ObservableObject {
             ofItemAtPath: scriptURL.path
         )
 
+        // Run install script at lower priority so it doesn't stutter the system
         let launcher = Process()
-        launcher.executableURL = URL(fileURLWithPath: "/bin/bash")
-        launcher.arguments = [scriptURL.path]
+        launcher.executableURL = URL(fileURLWithPath: "/usr/bin/nice")
+        launcher.arguments = ["-n", "15", "/bin/bash", scriptURL.path]
         try launcher.run()
 
         NSApp.terminate(nil)
@@ -183,6 +184,9 @@ final class UpdateManager: ObservableObject {
         let script = """
         #!/bin/bash
         set -euo pipefail
+        # Lower I/O and CPU priority so the install doesn't stutter the system
+        renice -n 15 $$ >/dev/null 2>&1 || true
+
         INSTALL_PATH=\(shellEscape(installPath))
         SOURCE_PATH=\(shellEscape(newApp.path))
         STAGED_PATH=\(shellEscape(stagedURL.path))
@@ -199,9 +203,9 @@ final class UpdateManager: ObservableObject {
 
         sleep 1.5
         rm -rf "$STAGED_PATH" "$BACKUP_PATH"
+        # Use ditto which preserves the ad-hoc signature already applied before this script runs
         /usr/bin/ditto "$SOURCE_PATH" "$STAGED_PATH"
         /usr/bin/xattr -rd com.apple.quarantine "$STAGED_PATH" >/dev/null 2>&1 || true
-        /usr/bin/codesign --verify --deep --strict "$STAGED_PATH" >/dev/null 2>&1 || /usr/bin/codesign --force --deep --sign - "$STAGED_PATH"
 
         if [ -d "$INSTALL_PATH" ]; then
           mv "$INSTALL_PATH" "$BACKUP_PATH"
