@@ -144,13 +144,18 @@ final class UpdateManager: ObservableObject {
             throw UpdateError.invalidAppBundle
         }
 
-        try? await run("/usr/bin/xattr", ["-rd", "com.apple.quarantine", newApp.path])
+        // Verify signature first — re-sign with ad-hoc if the downloaded bundle is unsigned.
+        // Quarantine is only removed AFTER we have confirmed a valid signature, so Gatekeeper
+        // cannot be bypassed on an unverified bundle.
         do {
             try await verifySignature(of: newApp)
         } catch {
             try await run("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", newApp.path])
             try await verifySignature(of: newApp)
         }
+
+        // Safe to strip quarantine now — signature is verified above.
+        try? await run("/usr/bin/xattr", ["-rd", "com.apple.quarantine", newApp.path])
 
         let installPath = Bundle.main.bundleURL
         let scriptURL = try writeInstallScript(

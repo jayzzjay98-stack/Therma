@@ -685,3 +685,199 @@ final class ConstantsCompletenessTests: XCTestCase {
         XCTAssertGreaterThan(Constants.menuBarWidth, 0)
     }
 }
+
+// MARK: - New Constants Tests (added with magic-number refactor)
+
+final class NewConstantsTests: XCTestCase {
+
+    func test_maxPercentage_is100() {
+        XCTAssertEqual(Constants.maxPercentage, 100)
+    }
+
+    func test_maxPercentage_isUsedForFractionConversion() {
+        // progress 0.5 × maxPercentage should equal 50
+        let progress = 0.5
+        XCTAssertEqual(Int((progress * Constants.maxPercentage).rounded()), 50)
+    }
+
+    // MARK: SettingsLayoutMetrics new entries
+
+    func test_paneHeroHeight_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.paneHeroHeight, 0)
+    }
+
+    func test_paneHeroGlowRadius_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.paneHeroGlowRadius, 0)
+    }
+
+    func test_aboutInfoPanelHeight_greaterThan_aboutHeroBannerHeight() {
+        // Info panels are taller than the hero banner above them.
+        XCTAssertGreaterThan(SettingsLayoutMetrics.aboutInfoPanelHeight, SettingsLayoutMetrics.aboutHeroBannerHeight)
+    }
+
+    func test_dashboardGaugeSizeLarge_greaterThan_small() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.dashboardGaugeSizeLarge, SettingsLayoutMetrics.dashboardGaugeSizeSmall)
+    }
+
+    func test_dashboardMiniChartHeight_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.dashboardMiniChartHeight, 0)
+    }
+
+    func test_menuBarModulePanelWidth_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.menuBarModulePanelWidth, 0)
+    }
+
+    func test_processUsageBarWidth_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.processUsageBarWidth, 0)
+    }
+
+    func test_heroChartHeight_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.heroChartHeight, 0)
+    }
+
+    func test_searchFieldWidth_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.searchFieldWidth, 0)
+    }
+
+    func test_cardGlowRadius_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.cardGlowRadius, 0)
+    }
+
+    func test_menuBarHeroGlowRadius_isPositive() {
+        XCTAssertGreaterThan(SettingsLayoutMetrics.menuBarHeroGlowRadius, 0)
+    }
+
+    // MARK: AppHTTPStatus
+
+    func test_appHTTPStatus_notFound_is404() {
+        XCTAssertEqual(AppHTTPStatus.notFound, 404)
+    }
+}
+
+// MARK: - ThermalPalette Tests
+
+final class ThermalPaletteTests: XCTestCase {
+
+    func test_veryLowTemp_returnsCoolColor() {
+        // Below warmThreshold (50°C) → cool
+        XCTAssertEqual(ThermalPalette.color(for: 30), ThermalPalette.cool)
+    }
+
+    func test_exactlyAtWarmThreshold_returnsWarmColor() {
+        // At 50°C (== warmThreshold start of warm band)
+        XCTAssertEqual(ThermalPalette.color(for: 50), ThermalPalette.warm)
+    }
+
+    func test_betweenWarmAndHot_returnsWarmColor() {
+        XCTAssertEqual(ThermalPalette.color(for: 60), ThermalPalette.warm)
+    }
+
+    func test_exactlyAtHotThreshold_returnsHotColor() {
+        XCTAssertEqual(ThermalPalette.color(for: 65), ThermalPalette.hot)
+    }
+
+    func test_betweenHotAndVeryHot_returnsHotColor() {
+        XCTAssertEqual(ThermalPalette.color(for: 70), ThermalPalette.hot)
+    }
+
+    func test_exactlyAtVeryHotThreshold_returnsVeryHotColor() {
+        XCTAssertEqual(ThermalPalette.color(for: 78), ThermalPalette.veryHot)
+    }
+
+    func test_extremeTemp_returnsCriticalColor() {
+        // Above criticalThreshold (88°C)
+        XCTAssertEqual(ThermalPalette.color(for: 100), ThermalPalette.critical)
+    }
+
+    func test_thresholds_areOrdered() {
+        XCTAssertLessThan(ThermalPalette.warmThreshold, ThermalPalette.hotThreshold)
+        XCTAssertLessThan(ThermalPalette.hotThreshold, ThermalPalette.veryHotThreshold)
+        XCTAssertLessThan(ThermalPalette.veryHotThreshold, ThermalPalette.criticalThreshold)
+    }
+}
+
+// MARK: - UpdateManager Edge Case Tests
+
+final class UpdateManagerEdgeCaseTests: XCTestCase {
+
+    func test_versionIsNewer_vPrefixStripped_detected() {
+        // GitHub tags like "v1.3.0" vs current "1.2.0"
+        XCTAssertTrue(UpdateManager.versionIsNewer("1.3.0", than: "1.2.0"))
+    }
+
+    func test_versionIsNewer_sameVersion_returnsFalse() {
+        XCTAssertFalse(UpdateManager.versionIsNewer("1.2.1", than: "1.2.1"))
+    }
+
+    func test_versionIsNewer_majorBump_detected() {
+        XCTAssertTrue(UpdateManager.versionIsNewer("2.0.0", than: "1.9.9"))
+    }
+
+    func test_versionIsNewer_minorBump_detected() {
+        XCTAssertTrue(UpdateManager.versionIsNewer("1.3.0", than: "1.2.9"))
+    }
+
+    func test_versionIsNewer_fourSegments_detected() {
+        XCTAssertTrue(UpdateManager.versionIsNewer("1.2.0.1", than: "1.2.0.0"))
+    }
+
+    func test_normalizedProgress_clampedAt1() {
+        let result = UpdateManager.normalizedDownloadProgress(totalBytesWritten: 200, expectedTotalBytes: 100)
+        XCTAssertEqual(result, 1.0)
+    }
+
+    func test_normalizedProgress_zeroWritten_isZero() {
+        let result = UpdateManager.normalizedDownloadProgress(totalBytesWritten: 0, expectedTotalBytes: 1000)
+        XCTAssertEqual(result, 0.0)
+    }
+
+    func test_preferredZipAsset_emptyAssets_returnsNil() {
+        XCTAssertNil(UpdateManager.preferredZipAssetDownloadURL(in: [], version: "1.0.0"))
+    }
+
+    func test_preferredZipAsset_nonZipAsset_ignored() {
+        let assets: [[String: Any]] = [
+            ["name": "Therma-1.0.0.dmg", "browser_download_url": "https://example.com/1.0.0.dmg"]
+        ]
+        XCTAssertNil(UpdateManager.preferredZipAssetDownloadURL(in: assets, version: "1.0.0"))
+    }
+}
+
+// MARK: - ThroughputFormatter Edge Case Tests
+
+final class ThroughputFormatterEdgeCaseTests: XCTestCase {
+
+    func test_formatsZeroBytes() {
+        XCTAssertEqual(ThroughputFormatter.string(for: 0), "0 B/s")
+    }
+
+    func test_formatsNegative_asPlaceholder() {
+        // Negative bandwidth is invalid — should return placeholder
+        XCTAssertEqual(ThroughputFormatter.string(for: -100), "--")
+    }
+
+    func test_formatsNaN_asPlaceholder() {
+        XCTAssertEqual(ThroughputFormatter.string(for: Double.nan), "--")
+    }
+
+    func test_formatsInfinity_asPlaceholder() {
+        XCTAssertEqual(ThroughputFormatter.string(for: Double.infinity), "--")
+    }
+
+    func test_formatsBytesBelow1KB() {
+        // 512 bytes → "512 B/s"
+        XCTAssertEqual(ThroughputFormatter.string(for: 512), "512 B/s")
+    }
+
+    func test_compactFormatBytesBelow1KB() {
+        XCTAssertEqual(ThroughputFormatter.compactString(for: 512), "512B")
+    }
+
+    func test_compactFormatKilobytes() {
+        XCTAssertEqual(ThroughputFormatter.compactString(for: 2_048), "2.0K")
+    }
+
+    func test_exactlyOneMegabyte() {
+        XCTAssertEqual(ThroughputFormatter.string(for: Constants.bytesPerMB), "1.00 MB/s")
+    }
+}

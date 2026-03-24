@@ -114,7 +114,7 @@ struct SettingsChartHeroCard: View {
             }
 
             SettingsGlowingAreaChart(values: values, tint: tint)
-                .frame(height: 108)
+                .frame(height: SettingsLayoutMetrics.heroChartHeight)
         }
         .padding(14)
         .background(SettingsDashboardCardBackground(accent: tint))

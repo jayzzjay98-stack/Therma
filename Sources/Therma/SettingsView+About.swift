@@ -25,7 +25,7 @@ extension SettingsView {
                     colors: [selectedTheme.accent.opacity(0.12), .clear],
                     center: .topLeading,
                     startRadius: 0,
-                    endRadius: 220
+                    endRadius: SettingsLayoutMetrics.aboutGlowRadius
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 18))
 
@@ -69,7 +69,7 @@ extension SettingsView {
                 }
                 .padding(22)
             }
-            .frame(height: 156)
+            .frame(height: SettingsLayoutMetrics.aboutHeroBannerHeight)
             .padding(.bottom, 10)
 
             HStack(alignment: .top, spacing: 18) {
@@ -104,7 +104,7 @@ extension SettingsView {
             }
             .padding(18)
             .background(aboutPanelBackground)
-            .frame(maxWidth: .infinity, minHeight: 244, maxHeight: 244, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: SettingsLayoutMetrics.aboutInfoPanelHeight, maxHeight: SettingsLayoutMetrics.aboutInfoPanelHeight, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
@@ -186,7 +186,7 @@ extension SettingsView {
             }
             .padding(18)
             .background(aboutPanelBackground)
-            .frame(maxWidth: .infinity, minHeight: 244, maxHeight: 244, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: SettingsLayoutMetrics.aboutInfoPanelHeight, maxHeight: SettingsLayoutMetrics.aboutInfoPanelHeight, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
@@ -366,7 +366,7 @@ extension SettingsView {
 
     var updateDownloadPercentText: String {
         let progress = min(max(updateManager.downloadProgress ?? 0, 0), 1)
-        return "\(Int((progress * 100).rounded()))%"
+        return "\(Int((progress * Constants.maxPercentage).rounded()))%"
     }
 
     var controlStatusLabel: String {

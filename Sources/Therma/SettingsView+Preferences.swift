@@ -9,7 +9,7 @@ extension SettingsView {
                 subtitle: "Select a module to preview it, then tune icon and text sizing without affecting visibility.",
                 pills: [selectedMenuBarItem.title, preferences.isVisible(selectedMenuBarItem) ? "Visible" : "Hidden"]
             )
-            .frame(height: 122)
+            .frame(height: SettingsLayoutMetrics.paneHeroHeight)
 
             HStack(alignment: .top, spacing: 16) {
                 SettingsPanelCard(
@@ -31,7 +31,7 @@ extension SettingsView {
                         }
                     }
                 }
-                .frame(width: 280, alignment: .topLeading)
+                .frame(width: SettingsLayoutMetrics.menuBarModulePanelWidth, alignment: .topLeading)
 
                 menuBarDetailPane
                     .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -95,7 +95,7 @@ extension SettingsView {
                 subtitle: "Core app behavior, startup preferences, and default display choices for Therma.",
                 pills: [launchAtLoginManager.isEnabled ? "Launch at Login" : "Manual Start", preferences.temperatureInFahrenheit ? "Fahrenheit" : "Celsius"]
             )
-            .frame(height: 122)
+            .frame(height: SettingsLayoutMetrics.paneHeroHeight)
 
             HStack(alignment: .top, spacing: 16) {
                 SettingsPanelCard(
@@ -164,7 +164,7 @@ extension SettingsView {
                 subtitle: "Configure proactive notifications for memory pressure and CPU temperature thresholds.",
                 pills: [preferences.ramAlertEnabled ? "RAM Armed" : "RAM Off", preferences.cpuAlertEnabled ? "CPU Armed" : "CPU Off"]
             )
-            .frame(height: 122)
+            .frame(height: SettingsLayoutMetrics.paneHeroHeight)
 
             HStack(alignment: .top, spacing: 16) {
                 SettingsAlertBlock(
@@ -186,7 +186,7 @@ extension SettingsView {
                     title: "CPU Temperature Alert",
                     isOn: preferences.cpuAlertEnabled,
                     toggleAction: { preferences.cpuAlertEnabled.toggle() },
-                    footer: "Alert when CPU temperature exceeds this threshold (60°C - 100°C)"
+                    footer: "Alert when CPU temperature exceeds this threshold (60°C - \(Int(Constants.cpuNormHigh))°C)"
                 ) {
                     SettingsSliderRow(
                         label: "Threshold",

@@ -40,6 +40,7 @@ enum Constants {
     static let cpuNormLow: Double  = 20   // ambient/idle floor
     static let cpuNormHigh: Double = 100  // practical maximum for display purposes
     static let cpuNormRange: Double = cpuNormHigh - cpuNormLow  // 80
+    static let maxPercentage: Double = 100 // 100 % — used for fraction-to-percent conversions
 
     // MARK: - Process Filtering
     static let minimumOrphanMemoryMB: Double = 15.0

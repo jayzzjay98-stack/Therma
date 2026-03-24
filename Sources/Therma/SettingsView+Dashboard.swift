@@ -40,7 +40,7 @@ extension SettingsView {
                 )
 
                 SettingsGlowingAreaChart(values: heroChartValues, tint: selectedTheme.accent)
-                    .frame(height: 124)
+                    .frame(height: SettingsLayoutMetrics.dashboardMiniChartHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
@@ -57,7 +57,7 @@ extension SettingsView {
                     caption: "%",
                     tint: selectedTheme.accent
                 )
-                .frame(width: 136, height: 136)
+                .frame(width: SettingsLayoutMetrics.dashboardGaugeSizeLarge, height: SettingsLayoutMetrics.dashboardGaugeSizeLarge)
                 .frame(maxWidth: .infinity)
                 Spacer(minLength: 0)
             }
@@ -75,7 +75,7 @@ extension SettingsView {
                 )
 
                 SettingsGlowingAreaChart(values: cpuMonitor.history, tint: selectedTheme.accent)
-                    .frame(height: 124)
+                    .frame(height: SettingsLayoutMetrics.dashboardMiniChartHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
@@ -118,7 +118,7 @@ extension SettingsView {
                     valueFontSize: 34,
                     captionFontSize: 10
                 )
-                .frame(width: 114, height: 114)
+                .frame(width: SettingsLayoutMetrics.dashboardGaugeSizeSmall, height: SettingsLayoutMetrics.dashboardGaugeSizeSmall)
                 .frame(maxWidth: .infinity)
 
                 batteryCyclesTile

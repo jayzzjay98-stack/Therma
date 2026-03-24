@@ -80,21 +80,14 @@ struct CPUSectionView: View {
             cpuSensorsCard
             batteryTemperatureCard
 
-            HStack(spacing: 4) {
-                MenuStatBox(
-                    label: "CURRENT",
-                    value: cpuMonitor.currentCelsius.map { preferences.formatCelsius($0) } ?? cpuMonitor.thermalLevel.shortLabel,
-                    isOk: !cpuMonitor.thermalLevel.isWarning
-                )
-
-                if preferences.isVisible(.cpuUsage) {
+            if preferences.isVisible(.cpuUsage) {
+                HStack(spacing: 4) {
                     MenuStatBox(
                         label: "USAGE",
                         value: systemMetricsMonitor.cpuUsageDisplayValue,
                         isOk: (systemMetricsMonitor.cpuUsagePercent ?? 0) < 70
                     )
                 }
-
             }
         }
         .padding(.horizontal, 14)

@@ -277,7 +277,7 @@ struct SettingsPaneHero: View {
                 colors: [theme.accent.opacity(0.12), .clear],
                 center: .topLeading,
                 startRadius: 0,
-                endRadius: 180
+                endRadius: SettingsLayoutMetrics.paneHeroGlowRadius
             )
             .clipShape(RoundedRectangle(cornerRadius: 18))
 

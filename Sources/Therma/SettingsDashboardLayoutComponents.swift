@@ -172,7 +172,7 @@ struct SettingsDashboardCardBackground: View {
                     colors: [accent.opacity(0.08), .clear],
                     center: .topLeading,
                     startRadius: 0,
-                    endRadius: 120
+                    endRadius: SettingsLayoutMetrics.cardGlowRadius
                 )
                 .clipShape(RoundedRectangle(cornerRadius: theme.cardCornerRadius))
             }
@@ -260,7 +260,7 @@ private struct SettingsSearchField: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)
-        .frame(width: 180, height: 30)
+        .frame(width: SettingsLayoutMetrics.searchFieldWidth, height: 30)
         .background(
             Capsule()
                 .fill(Color.white.opacity(0.06))

@@ -387,7 +387,7 @@ struct SettingsProcessUsageRow: View {
                         .frame(width: max(8, geometry.size.width * memoryRatio))
                 }
             }
-            .frame(width: 180, height: 6)
+            .frame(width: SettingsLayoutMetrics.processUsageBarWidth, height: 6)
 
             Text(memoryDisplayValue)
                 .font(.system(size: 11, weight: .bold, design: .monospaced))

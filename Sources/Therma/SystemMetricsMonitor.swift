@@ -130,7 +130,7 @@ private final class CPUUsageProvider {
         let active = Double(user + system + nice)
         let total = active + Double(idle)
         guard total > 0 else { return nil }
-        return active / total * 100
+        return active / total * Constants.maxPercentage
     }
 
     private func readSnapshot() -> CPULoadSnapshot? {
