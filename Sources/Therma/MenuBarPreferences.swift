@@ -111,6 +111,20 @@ final class MenuBarPreferences {
         }
     }
 
+    var networkShowDownload: Bool {
+        didSet {
+            UserDefaults.standard.set(networkShowDownload, forKey: Keys.networkShowDownload)
+            notifyStatusBarChange()
+        }
+    }
+
+    var networkShowUpload: Bool {
+        didSet {
+            UserDefaults.standard.set(networkShowUpload, forKey: Keys.networkShowUpload)
+            notifyStatusBarChange()
+        }
+    }
+
     var memoryMenuBarIconSize: Double {
         didSet {
             UserDefaults.standard.set(memoryMenuBarIconSize, forKey: Keys.memoryIconSize)
@@ -233,6 +247,9 @@ final class MenuBarPreferences {
             ?? userDefaults.object(forKey: Keys.legacyCPUUsageVisible) as? Bool
             ?? true
 
+        networkShowDownload = userDefaults.object(forKey: Keys.networkShowDownload) as? Bool ?? true
+        networkShowUpload = userDefaults.object(forKey: Keys.networkShowUpload) as? Bool ?? true
+
         memoryMenuBarIconSize = memoryBaseIconSize
         memoryMenuBarTextSize = memoryBaseTextSize
         networkMenuBarIconSize = Self.clamp(
@@ -274,6 +291,9 @@ final class MenuBarPreferences {
         networkMenuBarVisible = true
         cpuMenuBarVisible = true
         cpuUsageMenuBarVisible = true
+
+        networkShowDownload = true
+        networkShowUpload = true
 
         memoryMenuBarIconSize = Constants.defaultMenuBarIconSize
         memoryMenuBarTextSize = Constants.defaultMenuBarTextSize
@@ -398,6 +418,8 @@ final class MenuBarPreferences {
 
         static let memoryVisible = "memoryMenuBarVisible"
         static let networkVisible = "networkMenuBarVisible"
+        static let networkShowDownload = "networkShowDownload"
+        static let networkShowUpload = "networkShowUpload"
         static let cpuVisible = "cpuMenuBarVisible"
         static let cpuUsageVisible = "cpuUsageMenuBarVisible"
 

@@ -84,6 +84,23 @@ extension SettingsView {
                     )
                 }
             }
+
+            if item == .network {
+                SettingsPanelCard(
+                    title: "Network Display",
+                    subtitle: "Choose which network metrics to display in the menu bar.",
+                    centeredHeader: true
+                ) {
+                    SettingsPrefGroup {
+                        SettingsPrefRow("Show Download Speed", sublabel: "Display incoming network traffic amount", showDivider: true) {
+                            SettingsToggle(isOn: $preferences.networkShowDownload, tint: selectedTheme.accent)
+                        }
+                        SettingsPrefRow("Show Upload Speed", sublabel: "Display outgoing network traffic amount", showDivider: false) {
+                            SettingsToggle(isOn: $preferences.networkShowUpload, tint: selectedTheme.accent)
+                        }
+                    }
+                }
+            }
         }
     }
 

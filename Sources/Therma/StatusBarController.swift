@@ -144,7 +144,10 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         case .memory:
             return "\(context.ramMonitor.usagePercent)%"
         case .network:
-            return context.systemMetricsMonitor.networkMenuBarDisplayValue
+            return context.systemMetricsMonitor.networkMenuBarDisplayValue(
+                showDownload: context.preferences.networkShowDownload,
+                showUpload: context.preferences.networkShowUpload
+            )
         case .cpu:
             if let celsius = context.cpuMonitor.currentCelsius {
                 return context.preferences.formatCelsius(celsius)

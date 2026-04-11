@@ -69,15 +69,23 @@ final class SystemMetricsMonitor {
         ThroughputFormatter.string(for: uploadBytesPerSecond)
     }
 
-    var networkMenuBarDisplayValue: String {
+    func networkMenuBarDisplayValue(showDownload: Bool, showUpload: Bool) -> String {
         let download = ThroughputFormatter.compactString(for: downloadBytesPerSecond)
         let upload = ThroughputFormatter.compactString(for: uploadBytesPerSecond)
 
-        if download == "--", upload == "--" {
+        if download == "--" && upload == "--" {
             return "--"
         }
 
-        return "↓\(download) ↑\(upload)"
+        if showDownload && showUpload {
+            return "↓\(download) ↑\(upload)"
+        } else if showDownload {
+            return "↓\(download)"
+        } else if showUpload {
+            return "↑\(upload)"
+        } else {
+            return "--"
+        }
     }
 
     func refresh() {

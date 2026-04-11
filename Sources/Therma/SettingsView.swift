@@ -396,7 +396,10 @@ struct SettingsView: View {
         case .memory:
             return "\(ramMonitor.usagePercent)%"
         case .network:
-            return systemMetricsMonitor.networkMenuBarDisplayValue
+            return systemMetricsMonitor.networkMenuBarDisplayValue(
+                showDownload: preferences.networkShowDownload,
+                showUpload: preferences.networkShowUpload
+            )
         case .cpu:
             if let celsius = cpuMonitor.currentCelsius {
                 return preferences.formatCelsius(celsius)
