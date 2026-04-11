@@ -85,6 +85,7 @@ struct SettingsView: View {
     @Bindable var preferences: MenuBarPreferences
     let ramMonitor: RAMMonitor
     let cpuMonitor: CPUMonitor
+    let gpuMonitor: GPUMonitor
     let systemMetricsMonitor: SystemMetricsMonitor
     @ObservedObject var updateManager: UpdateManager
     let closeAction: (() -> Void)?
@@ -101,6 +102,7 @@ struct SettingsView: View {
         preferences: MenuBarPreferences,
         ramMonitor: RAMMonitor,
         cpuMonitor: CPUMonitor,
+        gpuMonitor: GPUMonitor,
         systemMetricsMonitor: SystemMetricsMonitor,
         updateManager: UpdateManager,
         closeAction: (() -> Void)? = nil
@@ -108,6 +110,7 @@ struct SettingsView: View {
         self.preferences = preferences
         self.ramMonitor = ramMonitor
         self.cpuMonitor = cpuMonitor
+        self.gpuMonitor = gpuMonitor
         self.systemMetricsMonitor = systemMetricsMonitor
         self.updateManager = updateManager
         self.closeAction = closeAction
@@ -281,6 +284,11 @@ struct SettingsView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    var gpuUsageNumericValue: String {
+        guard let usage = gpuMonitor.usagePercent else { return "--" }
+        return String(Int(usage.rounded()))
+    }
+
     var cpuTemperatureNumericValue: String {
         let value = cpuMonitor.currentCelsius.map(preferences.formatCelsius) ?? "--"
         return numericPortion(of: value)
@@ -407,6 +415,8 @@ struct SettingsView: View {
             return cpuMonitor.thermalLevel.shortLabel
         case .cpuUsage:
             return systemMetricsMonitor.cpuUsageDisplayValue
+        case .gpu:
+            return gpuMonitor.displayValue
         }
     }
 
@@ -461,6 +471,8 @@ struct SettingsView: View {
             return $preferences.cpuMenuBarIconSize
         case .cpuUsage:
             return $preferences.cpuUsageMenuBarIconSize
+        case .gpu:
+            return $preferences.gpuMenuBarIconSize
         }
     }
 
@@ -474,6 +486,8 @@ struct SettingsView: View {
             return $preferences.cpuMenuBarTextSize
         case .cpuUsage:
             return $preferences.cpuUsageMenuBarTextSize
+        case .gpu:
+            return $preferences.gpuMenuBarTextSize
         }
     }
 }

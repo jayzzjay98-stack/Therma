@@ -10,6 +10,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     private let networkItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let cpuItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let cpuUsageItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let gpuItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     private let memoryPopover = NSPopover()
     private let cpuPopover = NSPopover()
@@ -41,7 +42,8 @@ final class StatusBarController: NSObject, NSWindowDelegate {
             (.memory, memoryItem),
             (.network, networkItem),
             (.cpu, cpuItem),
-            (.cpuUsage, cpuUsageItem)
+            (.cpuUsage, cpuUsageItem),
+            (.gpu, gpuItem)
         ]
     }
 
@@ -55,6 +57,8 @@ final class StatusBarController: NSObject, NSWindowDelegate {
             return cpuItem
         case .cpuUsage:
             return cpuUsageItem
+        case .gpu:
+            return gpuItem
         }
     }
 
@@ -155,6 +159,8 @@ final class StatusBarController: NSObject, NSWindowDelegate {
             return context.cpuMonitor.thermalLevel.shortLabel
         case .cpuUsage:
             return context.systemMetricsMonitor.cpuUsageDisplayValue
+        case .gpu:
+            return context.gpuMonitor.displayValue
         }
     }
 
@@ -168,6 +174,8 @@ final class StatusBarController: NSObject, NSWindowDelegate {
             return "CPU Temperature"
         case .cpuUsage:
             return "CPU Usage"
+        case .gpu:
+            return "GPU Usage"
         }
     }
 
@@ -202,7 +210,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         switch item {
         case .memory, .cpu:
             toggle(popover: popover(for: item), for: statusItem(for: item))
-        case .network, .cpuUsage:
+        case .network, .cpuUsage, .gpu:
             break
         }
     }
@@ -234,6 +242,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
                     preferences: context.preferences,
                     ramMonitor: context.ramMonitor,
                     cpuMonitor: context.cpuMonitor,
+                    gpuMonitor: context.gpuMonitor,
                     systemMetricsMonitor: context.systemMetricsMonitor,
                     updateManager: context.updateManager,
                     closeAction: { [weak self] in self?.settingsWindow?.close() }

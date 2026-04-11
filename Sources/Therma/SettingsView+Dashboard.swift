@@ -15,7 +15,7 @@ extension SettingsView {
 
                 HStack(alignment: .top, spacing: spacing) {
                     dashboardCardSlot(dashboardCPUCard, width: width)
-                    dashboardCardSlot(dashboardSensorHeatCard, width: width)
+                    dashboardCardSlot(dashboardGPUCard, width: width)
                     dashboardCardSlot(dashboardBatteryCard, width: width)
                 }
             }
@@ -66,6 +66,25 @@ extension SettingsView {
         .frame(height: SettingsLayoutMetrics.dashboardCardHeight, alignment: .top)
     }
 
+    var dashboardGPUCard: some View {
+        SettingsDashboardMockCard(title: "GPU Usage") {
+            VStack {
+                Spacer(minLength: 0)
+                SettingsCircularUsageGauge(
+                    progress: (gpuMonitor.usagePercent ?? 0) / 100.0,
+                    value: gpuUsageNumericValue,
+                    caption: "%",
+                    tint: Color(red: 0.61, green: 0.35, blue: 0.96)
+                )
+                .frame(width: SettingsLayoutMetrics.dashboardGaugeSizeLarge, height: SettingsLayoutMetrics.dashboardGaugeSizeLarge)
+                .frame(maxWidth: .infinity)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(height: SettingsLayoutMetrics.dashboardCardHeight, alignment: .top)
+    }
+
     var dashboardCPUCard: some View {
         SettingsDashboardMockCard(title: "CPU Thermal") {
             VStack(spacing: 14) {
@@ -82,30 +101,7 @@ extension SettingsView {
         .frame(height: SettingsLayoutMetrics.dashboardCardHeight, alignment: .top)
     }
 
-    var dashboardSensorHeatCard: some View {
-        SettingsDashboardMockCard(title: "Sensor Heat") {
-            VStack(spacing: 18) {
-                if cpuMonitor.sensors.isEmpty {
-                    Spacer()
-                    Text("No readable CPU sensors right now.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.55))
-                    Spacer()
-                } else {
-                    ForEach(Array(cpuMonitor.sensors.prefix(3).enumerated()), id: \.element.id) { _, sensor in
-                        SettingsSensorHeatRow(
-                            name: compactSensorName(sensor.name),
-                            value: preferences.formatCelsius(sensor.celsius),
-                            progress: sensorHeatProgress(sensor.celsius),
-                            tint: selectedTheme.accent
-                        )
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        }
-        .frame(height: SettingsLayoutMetrics.dashboardCardHeight, alignment: .top)
-    }
+
 
     var dashboardBatteryCard: some View {
         SettingsDashboardMockCard(title: "Battery Temp") {

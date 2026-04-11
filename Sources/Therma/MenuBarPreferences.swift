@@ -11,6 +11,7 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
     case network
     case cpu
     case cpuUsage
+    case gpu
 
     var id: String { rawValue }
 
@@ -18,7 +19,7 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
         switch self {
         case .memory, .network:
             return .memory
-        case .cpu, .cpuUsage:
+        case .cpu, .cpuUsage, .gpu:
             return .cpu
         }
     }
@@ -29,6 +30,7 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
         case .network:  return "Network"
         case .cpu:      return "CPU"
         case .cpuUsage: return "CPU Usage"
+        case .gpu:      return "GPU"
         }
     }
 
@@ -38,6 +40,7 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
         case .network:  return "arrow.up.arrow.down"
         case .cpu:      return "thermometer.medium"
         case .cpuUsage: return "gauge.with.dots.needle.50percent"
+        case .gpu:      return "cpu"
         }
     }
 
@@ -49,6 +52,8 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
             return Color(red: 0.98, green: 0.55, blue: 0.22)
         case .cpuUsage:
             return Color(red: 0.99, green: 0.63, blue: 0.18)
+        case .gpu:
+            return Color(red: 0.61, green: 0.35, blue: 0.96) // Purple for GPU
         }
     }
 
@@ -66,6 +71,8 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
             return "54°C"
         case .cpuUsage:
             return "37%"
+        case .gpu:
+            return "24%"
         }
     }
 }
@@ -107,6 +114,13 @@ final class MenuBarPreferences {
     var cpuUsageMenuBarVisible: Bool {
         didSet {
             UserDefaults.standard.set(cpuUsageMenuBarVisible, forKey: Keys.cpuUsageVisible)
+            notifyStatusBarChange()
+        }
+    }
+
+    var gpuMenuBarVisible: Bool {
+        didSet {
+            UserDefaults.standard.set(gpuMenuBarVisible, forKey: Keys.gpuVisible)
             notifyStatusBarChange()
         }
     }
@@ -181,6 +195,20 @@ final class MenuBarPreferences {
         }
     }
 
+    var gpuMenuBarIconSize: Double {
+        didSet {
+            UserDefaults.standard.set(gpuMenuBarIconSize, forKey: Keys.gpuIconSize)
+            notifyStatusBarChange()
+        }
+    }
+
+    var gpuMenuBarTextSize: Double {
+        didSet {
+            UserDefaults.standard.set(gpuMenuBarTextSize, forKey: Keys.gpuTextSize)
+            notifyStatusBarChange()
+        }
+    }
+
     // MARK: - General
 
     var temperatureInFahrenheit: Bool {
@@ -247,6 +275,8 @@ final class MenuBarPreferences {
             ?? userDefaults.object(forKey: Keys.legacyCPUUsageVisible) as? Bool
             ?? true
 
+        gpuMenuBarVisible = userDefaults.object(forKey: Keys.gpuVisible) as? Bool ?? false
+
         networkShowDownload = userDefaults.object(forKey: Keys.networkShowDownload) as? Bool ?? true
         networkShowUpload = userDefaults.object(forKey: Keys.networkShowUpload) as? Bool ?? true
 
@@ -274,6 +304,16 @@ final class MenuBarPreferences {
             min: Constants.minimumMenuBarTextSize,
             max: Constants.maximumMenuBarTextSize
         )
+        gpuMenuBarIconSize = Self.clamp(
+            userDefaults.object(forKey: Keys.gpuIconSize) as? Double ?? cpuBaseIconSize,
+            min: Constants.minimumMenuBarIconSize,
+            max: Constants.maximumMenuBarIconSize
+        )
+        gpuMenuBarTextSize = Self.clamp(
+            userDefaults.object(forKey: Keys.gpuTextSize) as? Double ?? cpuBaseTextSize,
+            min: Constants.minimumMenuBarTextSize,
+            max: Constants.maximumMenuBarTextSize
+        )
 
         temperatureInFahrenheit = userDefaults.bool(forKey: Keys.tempUnit)
         ramAlertEnabled = userDefaults.bool(forKey: Keys.ramAlertEnabled)
@@ -291,6 +331,7 @@ final class MenuBarPreferences {
         networkMenuBarVisible = true
         cpuMenuBarVisible = true
         cpuUsageMenuBarVisible = true
+        gpuMenuBarVisible = false
 
         networkShowDownload = true
         networkShowUpload = true
@@ -303,6 +344,8 @@ final class MenuBarPreferences {
         cpuMenuBarTextSize = Constants.defaultMenuBarTextSize
         cpuUsageMenuBarIconSize = Constants.defaultMenuBarIconSize
         cpuUsageMenuBarTextSize = Constants.defaultMenuBarTextSize
+        gpuMenuBarIconSize = Constants.defaultMenuBarIconSize
+        gpuMenuBarTextSize = Constants.defaultMenuBarTextSize
 
         temperatureInFahrenheit = false
         ramAlertEnabled = false
@@ -354,6 +397,8 @@ final class MenuBarPreferences {
             return cpuMenuBarVisible
         case .cpuUsage:
             return cpuUsageMenuBarVisible
+        case .gpu:
+            return gpuMenuBarVisible
         }
     }
 
@@ -371,6 +416,8 @@ final class MenuBarPreferences {
             cpuMenuBarVisible = visible
         case .cpuUsage:
             cpuUsageMenuBarVisible = visible
+        case .gpu:
+            gpuMenuBarVisible = visible
         }
     }
 
@@ -384,6 +431,8 @@ final class MenuBarPreferences {
             return cpuMenuBarIconSize
         case .cpuUsage:
             return cpuUsageMenuBarIconSize
+        case .gpu:
+            return gpuMenuBarIconSize
         }
     }
 
@@ -397,6 +446,8 @@ final class MenuBarPreferences {
             return cpuMenuBarTextSize
         case .cpuUsage:
             return cpuUsageMenuBarTextSize
+        case .gpu:
+            return gpuMenuBarTextSize
         }
     }
 
@@ -422,6 +473,7 @@ final class MenuBarPreferences {
         static let networkShowUpload = "networkShowUpload"
         static let cpuVisible = "cpuMenuBarVisible"
         static let cpuUsageVisible = "cpuUsageMenuBarVisible"
+        static let gpuVisible = "gpuMenuBarVisible"
 
         static let memoryIconSize = "memoryMenuBarIconSize"
         static let memoryTextSize = "memoryMenuBarTextSize"
@@ -431,6 +483,8 @@ final class MenuBarPreferences {
         static let cpuTextSize = "cpuMenuBarTextSize"
         static let cpuUsageIconSize = "cpuUsageMenuBarIconSize"
         static let cpuUsageTextSize = "cpuUsageMenuBarTextSize"
+        static let gpuIconSize = "gpuMenuBarIconSize"
+        static let gpuTextSize = "gpuMenuBarTextSize"
 
         static let legacyCPUUsageVisible = "showCPUUsageInPopover"
         static let legacyNetworkVisible = "showNetworkSpeedInPopover"

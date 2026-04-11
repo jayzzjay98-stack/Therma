@@ -10,6 +10,7 @@ struct ThermaApp: App {
                 preferences: AppContext.shared.preferences,
                 ramMonitor: AppContext.shared.ramMonitor,
                 cpuMonitor: AppContext.shared.cpuMonitor,
+                gpuMonitor: AppContext.shared.gpuMonitor,
                 systemMetricsMonitor: AppContext.shared.systemMetricsMonitor,
                 updateManager: AppContext.shared.updateManager
             )

@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Therma — Design 10: Volcanic Ember</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+  }
+
+  h1.page-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff4444;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: -30px;
+  }
+
+  .window {
+    width: 900px;
+    height: 600px;
+    background: #0a0505;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 80px rgba(255, 68, 68, 0.08), 0 20px 60px rgba(0,0,0,0.7);
+  }
+
+  /* Ember glow spots */
+  .window::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -50px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 68, 68, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .window::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: 100px;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(255, 140, 0, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .titlebar {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: rgba(20, 8, 8, 0.9);
+    border-bottom: 1px solid rgba(255, 68, 68, 0.1);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .traffic-lights {
+    display: flex;
+    gap: 8px;
+  }
+  .traffic-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .tl-close { background: #ff5f57; }
+  .tl-min { background: #febc2e; }
+  .tl-max { background: #28c840; }
+
+  .body-wrap {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 152px;
+    background: #100808;
+    border-right: 1px solid rgba(255, 68, 68, 0.15);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to bottom, #ff4444, #ff8c00, transparent);
+  }
+  .sidebar-brand {
+    padding: 20px 16px 4px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #ff4444;
+  }
+  .sidebar-version {
+    padding: 0 16px 16px;
+    font-size: 10px;
+    color: #664444;
+    letter-spacing: 1px;
+  }
+  .sidebar-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 8px;
+  }
+  .nav-item {
+    padding: 9px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #886666;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-item.active {
+    background: rgba(255, 68, 68, 0.12);
+    color: #ff6b35;
+  }
+  .nav-item:hover:not(.active) {
+    color: #cc8888;
+  }
+  .sidebar-temp {
+    padding: 16px;
+    border-top: 1px solid rgba(255, 68, 68, 0.1);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #664444;
+  }
+  .sidebar-temp span {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ff4444;
+    letter-spacing: 0;
+    margin-top: 4px;
+  }
+
+  /* Main content */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .content {
+    flex: 1;
+    padding: 20px 24px;
+    overflow-y: auto;
+  }
+  .content-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ff6b35;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+
+  /* Footer */
+  .footer {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: rgba(20, 8, 8, 0.9);
+    border-top: 1px solid rgba(255, 68, 68, 0.1);
+    flex-shrink: 0;
+  }
+  .footer-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #553333;
+  }
+  .footer-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-reset {
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #886666;
+    background: transparent;
+    border: 1px solid rgba(255, 68, 68, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .btn-done {
+    padding: 5px 18px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #ff4444, #ff6b35);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  /* Cards grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 12px;
+    height: calc(100% - 40px);
+  }
+  .card {
+    background: rgba(30, 12, 12, 0.8);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(255, 68, 68, 0.03);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: #886666;
+    text-transform: uppercase;
+  }
+  .card-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ff6b35;
+  }
+  .card-chart {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    padding-top: 8px;
+  }
+  .bar {
+    flex: 1;
+    background: linear-gradient(to top, #ff4444, #ff8c00);
+    border-radius: 2px;
+    opacity: 0.7;
+  }
+
+  /* Circular gauge */
+  .gauge-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gauge {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: conic-gradient(#ff4444 0deg, #ff8c00 245deg, rgba(40, 20, 20, 0.5) 245deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .gauge-inner {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: #1a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .gauge-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ff6b35;
+  }
+  .gauge-unit {
+    font-size: 8px;
+    color: #886666;
+    letter-spacing: 1px;
+  }
+
+  /* Traffic rows */
+  .traffic-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+  }
+  .traffic-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .traffic-dir {
+    font-size: 10px;
+    color: #886666;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .traffic-val {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ff6b35;
+  }
+  .traffic-unit {
+    font-size: 9px;
+    color: #664444;
+  }
+  .traffic-bar-bg {
+    height: 4px;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: 2px;
+    margin-top: 4px;
+  }
+  .traffic-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(to right, #ff4444, #ff8c00);
+  }
+
+  /* Trace line */
+  .trace-area {
+    flex: 1;
+    position: relative;
+    margin-top: 8px;
+  }
+  .trace-line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+  }
+  .trace-svg { width: 100%; height: 100%; }
+
+  /* Sensor rows */
+  .sensor-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+  }
+  .sensor-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sensor-name {
+    font-size: 10px;
+    color: #886666;
+    width: 60px;
+    font-weight: 500;
+  }
+  .sensor-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: 3px;
+  }
+  .sensor-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(to right, #ff4444, #ff8c00);
+  }
+  .sensor-val {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ff6b35;
+    width: 36px;
+    text-align: right;
+  }
+
+  /* Toggle */
+  .toggle {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: rgba(255, 68, 68, 0.15);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle.on {
+    background: linear-gradient(135deg, #ff4444, #ff8c00);
+  }
+  .toggle-knob {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s;
+  }
+  .toggle.on .toggle-knob {
+    left: 18px;
+  }
+
+  /* Menu Bar page */
+  .menubar-layout {
+    display: flex;
+    gap: 20px;
+    height: calc(100% - 40px);
+  }
+  .menubar-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .menubar-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(30, 12, 12, 0.8);
+    border: 1px solid rgba(255, 107, 53, 0.15);
+    border-radius: 8px;
+  }
+  .menubar-item-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #ccaaaa;
+  }
+  .menubar-right {
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .menubar-preview {
+    background: rgba(30, 12, 12, 0.8);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    border-radius: 10px;
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #664444;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .preview-bar {
+    background: #1a0808;
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .preview-icon {
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #ff4444, #ff8c00);
+    border-radius: 3px;
+  }
+  .preview-text {
+    font-size: 11px;
+    color: #ff6b35;
+    font-weight: 600;
+  }
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #886666;
+  }
+  .slider-label span:last-child {
+    color: #ff6b35;
+    font-weight: 600;
+  }
+  .slider-track {
+    height: 4px;
+    background: rgba(255, 68, 68, 0.15);
+    border-radius: 2px;
+    position: relative;
+  }
+  .slider-fill {
+    height: 100%;
+    background: linear-gradient(to right, #ff4444, #ff8c00);
+    border-radius: 2px;
+  }
+  .slider-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ff6b35;
+    border: 2px solid #fff;
+    position: absolute;
+    top: -5px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+  }
+
+  /* General page */
+  .settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: rgba(30, 12, 12, 0.8);
+    border: 1px solid rgba(255, 107, 53, 0.15);
+    border-radius: 10px;
+  }
+  .setting-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ccaaaa;
+  }
+  .setting-desc {
+    font-size: 10px;
+    color: #664444;
+    margin-top: 2px;
+  }
+  .segment-control {
+    display: flex;
+    background: rgba(255, 68, 68, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 68, 68, 0.15);
+  }
+  .segment {
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #886666;
+    cursor: pointer;
+  }
+  .segment.active {
+    background: linear-gradient(135deg, #ff4444, #ff6b35);
+    color: #fff;
+  }
+
+  /* Alerts page */
+  .alert-card {
+    background: rgba(30, 12, 12, 0.8);
+    border: 1px solid rgba(255, 107, 53, 0.15);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .alert-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .alert-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccaaaa;
+  }
+  .alert-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .alert-slider-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: 3px;
+    position: relative;
+  }
+  .alert-slider-fill {
+    height: 100%;
+    background: linear-gradient(to right, #ff8c00, #ff4444);
+    border-radius: 3px;
+  }
+  .alert-slider-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ff4444;
+    border: 2px solid #fff;
+    position: absolute;
+    top: -5px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+  }
+  .alert-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ff4444;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  /* About page */
+  .about-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100% - 40px);
+    text-align: center;
+    gap: 6px;
+  }
+  .about-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ff4444, #ff8c00);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    box-shadow: 0 0 40px rgba(255, 68, 68, 0.3);
+  }
+  .about-icon-text {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .about-appname {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ff6b35;
+    letter-spacing: 2px;
+  }
+  .about-version {
+    font-size: 13px;
+    color: #886666;
+    font-weight: 500;
+  }
+  .about-platform {
+    font-size: 11px;
+    color: #664444;
+    margin-top: 4px;
+  }
+  .about-update {
+    margin-top: 18px;
+    padding: 8px 24px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #ff4444, #ff6b35);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(255, 68, 68, 0.3);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== PAGE 1: DASHBOARD ============== -->
+<h1 class="page-label">1 / Dashboard</h1>
+<div class="window">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+  </div>
+  <div class="body-wrap">
+    <div class="sidebar">
+      <div class="sidebar-brand">THERMA</div>
+      <div class="sidebar-version">v1.2.1</div>
+      <div class="sidebar-nav">
+        <div class="nav-item active">Dashboard</div>
+        <div class="nav-item">Menu Bar</div>
+        <div class="nav-item">General</div>
+        <div class="nav-item">Alerts</div>
+        <div class="nav-item">About</div>
+      </div>
+      <div class="sidebar-temp">CORE TEMP<span>33°C</span></div>
+    </div>
+    <div class="main">
+      <div class="content">
+        <div class="content-title">Dashboard</div>
+        <div class="cards-grid">
+          <!-- CPU Usage -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">CPU USAGE</span>
+              <span class="card-value">14%</span>
+            </div>
+            <div class="card-chart">
+              <div class="bar" style="height:30%"></div>
+              <div class="bar" style="height:45%"></div>
+              <div class="bar" style="height:25%"></div>
+              <div class="bar" style="height:60%"></div>
+              <div class="bar" style="height:35%"></div>
+              <div class="bar" style="height:50%"></div>
+              <div class="bar" style="height:20%"></div>
+              <div class="bar" style="height:40%"></div>
+              <div class="bar" style="height:55%"></div>
+              <div class="bar" style="height:14%"></div>
+            </div>
+          </div>
+          <!-- RAM Usage -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">RAM USAGE</span>
+            </div>
+            <div class="gauge-wrap">
+              <div class="gauge">
+                <div class="gauge-inner">
+                  <span class="gauge-val">68%</span>
+                  <span class="gauge-unit">USED</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Traffic Analysis -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">TRAFFIC ANALYSIS</span>
+            </div>
+            <div class="traffic-rows">
+              <div>
+                <div class="traffic-row">
+                  <span class="traffic-dir">DL</span>
+                  <span><span class="traffic-val">0.02</span> <span class="traffic-unit">MB/s</span></span>
+                </div>
+                <div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:15%"></div></div>
+              </div>
+              <div>
+                <div class="traffic-row">
+                  <span class="traffic-dir">UL</span>
+                  <span><span class="traffic-val">0.01</span> <span class="traffic-unit">MB/s</span></span>
+                </div>
+                <div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:8%"></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- CPU Thermal -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">CPU THERMAL</span>
+              <span class="card-value">33°C</span>
+            </div>
+            <div class="trace-area">
+              <svg class="trace-svg" viewBox="0 0 200 60" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="ember-grad1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ff4444" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#ff4444" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,45 Q20,40 40,42 T80,35 T120,38 T160,30 T200,33 V60 H0Z" fill="url(#ember-grad1)"/>
+                <path d="M0,45 Q20,40 40,42 T80,35 T120,38 T160,30 T200,33" fill="none" stroke="#ff4444" stroke-width="2"/>
+              </svg>
+            </div>
+          </div>
+          <!-- Sensor Heat -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">SENSOR HEAT</span>
+            </div>
+            <div class="sensor-rows">
+              <div class="sensor-row">
+                <span class="sensor-name">CPU Core</span>
+                <div class="sensor-bar-bg"><div class="sensor-bar-fill" style="width:42%"></div></div>
+                <span class="sensor-val">33°C</span>
+              </div>
+              <div class="sensor-row">
+                <span class="sensor-name">GPU</span>
+                <div class="sensor-bar-bg"><div class="sensor-bar-fill" style="width:36%"></div></div>
+                <span class="sensor-val">29°C</span>
+              </div>
+              <div class="sensor-row">
+                <span class="sensor-name">SSD</span>
+                <div class="sensor-bar-bg"><div class="sensor-bar-fill" style="width:33%"></div></div>
+                <span class="sensor-val">27°C</span>
+              </div>
+            </div>
+          </div>
+          <!-- Battery Temp -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">BATTERY TEMP</span>
+            </div>
+            <div class="gauge-wrap">
+              <div class="gauge" style="background: conic-gradient(#ff8c00 0deg, #ff4444 105deg, rgba(40,20,20,0.5) 105deg);">
+                <div class="gauge-inner">
+                  <span class="gauge-val">29°C</span>
+                  <span class="gauge-unit">BATT</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span class="footer-label">THERMA CONTROL SURFACE</span>
+        <div class="footer-buttons">
+          <button class="btn-reset">Reset to defaults</button>
+          <button class="btn-done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== PAGE 2: MENU BAR ============== -->
+<h1 class="page-label">2 / Menu Bar</h1>
+<div class="window">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+  </div>
+  <div class="body-wrap">
+    <div class="sidebar">
+      <div class="sidebar-brand">THERMA</div>
+      <div class="sidebar-version">v1.2.1</div>
+      <div class="sidebar-nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item active">Menu Bar</div>
+        <div class="nav-item">General</div>
+        <div class="nav-item">Alerts</div>
+        <div class="nav-item">About</div>
+      </div>
+      <div class="sidebar-temp">CORE TEMP<span>33°C</span></div>
+    </div>
+    <div class="main">
+      <div class="content">
+        <div class="content-title">Menu Bar</div>
+        <div class="menubar-layout">
+          <div class="menubar-left">
+            <div class="menubar-item">
+              <span class="menubar-item-label">RAM</span>
+              <div class="toggle on"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="menubar-item">
+              <span class="menubar-item-label">Network</span>
+              <div class="toggle on"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="menubar-item">
+              <span class="menubar-item-label">CPU</span>
+              <div class="toggle on"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="menubar-item">
+              <span class="menubar-item-label">CPU Usage</span>
+              <div class="toggle"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+          <div class="menubar-right">
+            <div class="menubar-preview">
+              <span class="preview-label">Preview</span>
+              <div class="preview-bar">
+                <div class="preview-icon"></div>
+                <span class="preview-text">33°C 68% 0.02↓</span>
+              </div>
+              <div class="slider-group">
+                <div class="slider-label"><span>Icon Size</span><span>11</span></div>
+                <div class="slider-track">
+                  <div class="slider-fill" style="width:45%"></div>
+                  <div class="slider-thumb" style="left:45%"></div>
+                </div>
+              </div>
+              <div class="slider-group" style="margin-top: 14px;">
+                <div class="slider-label"><span>Text Size</span><span>12</span></div>
+                <div class="slider-track">
+                  <div class="slider-fill" style="width:52%"></div>
+                  <div class="slider-thumb" style="left:52%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span class="footer-label">THERMA CONTROL SURFACE</span>
+        <div class="footer-buttons">
+          <button class="btn-reset">Reset to defaults</button>
+          <button class="btn-done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== PAGE 3: GENERAL ============== -->
+<h1 class="page-label">3 / General</h1>
+<div class="window">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+  </div>
+  <div class="body-wrap">
+    <div class="sidebar">
+      <div class="sidebar-brand">THERMA</div>
+      <div class="sidebar-version">v1.2.1</div>
+      <div class="sidebar-nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Menu Bar</div>
+        <div class="nav-item active">General</div>
+        <div class="nav-item">Alerts</div>
+        <div class="nav-item">About</div>
+      </div>
+      <div class="sidebar-temp">CORE TEMP<span>33°C</span></div>
+    </div>
+    <div class="main">
+      <div class="content">
+        <div class="content-title">General</div>
+        <div class="settings-list">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Launch at Login</div>
+              <div class="setting-desc">Start Therma when you log in</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Temperature Unit</div>
+              <div class="setting-desc">Choose display unit</div>
+            </div>
+            <div class="segment-control">
+              <div class="segment active">°C</div>
+              <div class="segment">°F</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span class="footer-label">THERMA CONTROL SURFACE</span>
+        <div class="footer-buttons">
+          <button class="btn-reset">Reset to defaults</button>
+          <button class="btn-done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== PAGE 4: ALERTS ============== -->
+<h1 class="page-label">4 / Alerts</h1>
+<div class="window">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+  </div>
+  <div class="body-wrap">
+    <div class="sidebar">
+      <div class="sidebar-brand">THERMA</div>
+      <div class="sidebar-version">v1.2.1</div>
+      <div class="sidebar-nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Menu Bar</div>
+        <div class="nav-item">General</div>
+        <div class="nav-item active">Alerts</div>
+        <div class="nav-item">About</div>
+      </div>
+      <div class="sidebar-temp">CORE TEMP<span>33°C</span></div>
+    </div>
+    <div class="main">
+      <div class="content">
+        <div class="content-title">Alerts</div>
+        <div class="alert-card">
+          <div class="alert-top">
+            <span class="alert-label">RAM Alert</span>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="alert-slider-row">
+            <div class="alert-slider-track">
+              <div class="alert-slider-fill" style="width:85%"></div>
+              <div class="alert-slider-thumb" style="left:85%"></div>
+            </div>
+            <span class="alert-value">85%</span>
+          </div>
+        </div>
+        <div class="alert-card">
+          <div class="alert-top">
+            <span class="alert-label">CPU Temp Alert</span>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="alert-slider-row">
+            <div class="alert-slider-track">
+              <div class="alert-slider-fill" style="width:90%"></div>
+              <div class="alert-slider-thumb" style="left:90%"></div>
+            </div>
+            <span class="alert-value">90°C</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span class="footer-label">THERMA CONTROL SURFACE</span>
+        <div class="footer-buttons">
+          <button class="btn-reset">Reset to defaults</button>
+          <button class="btn-done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== PAGE 5: ABOUT ============== -->
+<h1 class="page-label">5 / About</h1>
+<div class="window">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+  </div>
+  <div class="body-wrap">
+    <div class="sidebar">
+      <div class="sidebar-brand">THERMA</div>
+      <div class="sidebar-version">v1.2.1</div>
+      <div class="sidebar-nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item">Menu Bar</div>
+        <div class="nav-item">General</div>
+        <div class="nav-item">Alerts</div>
+        <div class="nav-item active">About</div>
+      </div>
+      <div class="sidebar-temp">CORE TEMP<span>33°C</span></div>
+    </div>
+    <div class="main">
+      <div class="content">
+        <div class="content-title">About</div>
+        <div class="about-content">
+          <div class="about-icon"><span class="about-icon-text">T</span></div>
+          <div class="about-appname">THERMA</div>
+          <div class="about-version">Version v1.2.1</div>
+          <div class="about-platform">Apple Silicon · macOS 14+</div>
+          <button class="about-update">Check Now</button>
+        </div>
+      </div>
+      <div class="footer">
+        <span class="footer-label">THERMA CONTROL SURFACE</span>
+        <div class="footer-buttons">
+          <button class="btn-reset">Reset to defaults</button>
+          <button class="btn-done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

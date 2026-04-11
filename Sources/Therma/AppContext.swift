@@ -6,6 +6,7 @@ final class AppContext {
 
     let ramMonitor    = RAMMonitor(autoRefreshStats: false)
     let cpuMonitor    = CPUMonitor(autoRefresh: false)
+    let gpuMonitor    = GPUMonitor(autoRefresh: false)
     let systemMetricsMonitor = SystemMetricsMonitor(autoRefresh: false)
     let preferences   = MenuBarPreferences()
     let updateManager = UpdateManager()
@@ -35,6 +36,7 @@ final class AppContext {
         refreshTickCount += 1
 
         systemMetricsMonitor.refresh()
+        gpuMonitor.refresh()
 
         if refreshTickCount % Int(Constants.backgroundRefreshInterval / Constants.systemMetricsRefreshInterval) == 0 {
             ramMonitor.refreshStatsOnly()
