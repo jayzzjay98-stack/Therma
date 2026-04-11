@@ -74,7 +74,7 @@ extension SettingsView {
                     progress: (gpuMonitor.usagePercent ?? 0) / 100.0,
                     value: gpuUsageNumericValue,
                     caption: "%",
-                    tint: Color(red: 0.61, green: 0.35, blue: 0.96)
+                    tint: selectedTheme.accent
                 )
                 .frame(width: SettingsLayoutMetrics.dashboardGaugeSizeLarge, height: SettingsLayoutMetrics.dashboardGaugeSizeLarge)
                 .frame(maxWidth: .infinity)

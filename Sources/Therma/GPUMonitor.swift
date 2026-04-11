@@ -1,9 +1,22 @@
 import Foundation
 import IOKit
 
+struct GPUStats {
+    let deviceUtilPercent: Double
+    let rendererUtilPercent: Double
+    let tilerUtilPercent: Double
+    let inUseMemoryBytes: Int64
+    let allocatedMemoryBytes: Int64
+
+    var inUseMemoryGB: Double { Double(inUseMemoryBytes) / 1_073_741_824 }
+    var allocatedMemoryGB: Double { Double(allocatedMemoryBytes) / 1_073_741_824 }
+    var inUseMemoryMB: Double { Double(inUseMemoryBytes) / 1_048_576 }
+}
+
 @Observable
 final class GPUMonitor {
     var usagePercent: Double?
+    var stats: GPUStats?
     var lastUpdated: Date = .distantPast
 
     private let autoRefresh: Bool
@@ -26,33 +39,64 @@ final class GPUMonitor {
         return "\(Int(usagePercent.rounded()))%"
     }
 
+    var rendererDisplayValue: String {
+        guard let s = stats else { return "--" }
+        return "\(Int(s.rendererUtilPercent.rounded()))%"
+    }
+
+    var tilerDisplayValue: String {
+        guard let s = stats else { return "--" }
+        return "\(Int(s.tilerUtilPercent.rounded()))%"
+    }
+
+    var vramDisplayValue: String {
+        guard let s = stats else { return "--" }
+        let mb = s.inUseMemoryMB
+        if mb >= 1024 { return String(format: "%.1f GB", s.inUseMemoryGB) }
+        return String(format: "%.0f MB", mb)
+    }
+
     func refresh() {
-        usagePercent = Self.fetchGPUUtilization()
+        let fetched = Self.fetchGPUStats()
+        stats = fetched
+        usagePercent = fetched?.deviceUtilPercent
         lastUpdated = Date()
     }
 
-    private static func fetchGPUUtilization() -> Double? {
+    private static func fetchGPUStats() -> GPUStats? {
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS else {
             return nil
         }
 
-        var utilization: Double? = nil
+        var best: GPUStats? = nil
 
-        while let svc = IOIteratorNext(iterator) as io_object_t?, svc != 0 {
+        while case let svc = IOIteratorNext(iterator), svc != 0 {
             defer { IOObjectRelease(svc) }
-            guard let unmanaged = IORegistryEntryCreateCFProperty(svc, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0) else {
-                continue
-            }
+            guard let unmanaged = IORegistryEntryCreateCFProperty(svc, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0) else { continue }
+            guard let dict = unmanaged.takeRetainedValue() as? [String: Any] else { continue }
 
-            if let dict = unmanaged.takeRetainedValue() as? [String: Any], let util = dict["Device Utilization %"] as? Int {
-                // If there are multiple GPUs (e.g. Intel + AMD, or Mac Studio Ultra), we could take max or average.
-                // For Apple Silicon, there's typically one AppleAGX accelerator.
-                utilization = max(utilization ?? 0, Double(util))
+            let device   = (dict["Device Utilization %"]   as? Int).map(Double.init) ?? 0
+            let renderer = (dict["Renderer Utilization %"] as? Int).map(Double.init) ?? 0
+            let tiler    = (dict["Tiler Utilization %"]    as? Int).map(Double.init) ?? 0
+            let inUse    = dict["In use system memory"]    as? Int64 ?? 0
+            let alloc    = dict["Alloc system memory"]     as? Int64
+                        ?? (dict["Allocated PB Size"]      as? Int64 ?? 0)
+
+            let candidate = GPUStats(
+                deviceUtilPercent: device,
+                rendererUtilPercent: renderer,
+                tilerUtilPercent: tiler,
+                inUseMemoryBytes: inUse,
+                allocatedMemoryBytes: alloc
+            )
+
+            if best == nil || device > best!.deviceUtilPercent {
+                best = candidate
             }
         }
 
-        return utilization
+        return best
     }
 
     private func startTimer() {

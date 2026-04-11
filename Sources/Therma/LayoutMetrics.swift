@@ -57,11 +57,16 @@ enum AppHTTPStatus {
 enum MenuBarPopoverMetrics {
     static let memoryHeight: CGFloat = 580
     static let cpuHeight: CGFloat    = 485
+    static let gpuHeight: CGFloat    = 340
 
     static func size(for mode: MonitorDisplayMode) -> NSSize {
         NSSize(
             width: Constants.menuBarWidth,
             height: mode == .memory ? memoryHeight : cpuHeight
         )
+    }
+
+    static var gpuSize: NSSize {
+        NSSize(width: Constants.menuBarWidth, height: gpuHeight)
     }
 }

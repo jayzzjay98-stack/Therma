@@ -14,8 +14,15 @@ final class StatusBarController: NSObject, NSWindowDelegate {
 
     private let memoryPopover = NSPopover()
     private let cpuPopover = NSPopover()
+    private let gpuPopover = NSPopover()
     private lazy var memoryHostingController = makeHostingController(for: .memory)
     private lazy var cpuHostingController = makeHostingController(for: .cpu)
+    private lazy var gpuHostingController = NSHostingController(
+        rootView: GPUMenuBarView(
+            gpuMonitor: context.gpuMonitor,
+            openSettingsAction: { [weak self] in self?.openSettings() }
+        )
+    )
     private var settingsWindow: NSWindow?
     private var observers: [NSObjectProtocol] = []
     private var lastStatusText: [MenuBarItem: String] = [:]
@@ -26,6 +33,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
 
         configurePopover(memoryPopover, mode: .memory)
         configurePopover(cpuPopover, mode: .cpu)
+        configureGPUPopover()
         configureButtons()
         registerObservers()
         refreshStatusItems()
@@ -70,6 +78,15 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         controller.view.wantsLayer = true
         _ = controller.view
         popover.contentViewController = controller
+    }
+
+    private func configureGPUPopover() {
+        gpuPopover.behavior = .transient
+        gpuPopover.animates = true
+        gpuPopover.contentSize = MenuBarPopoverMetrics.gpuSize
+        gpuHostingController.view.wantsLayer = true
+        _ = gpuHostingController.view
+        gpuPopover.contentViewController = gpuHostingController
     }
 
     private func makeHostingController(for mode: MonitorDisplayMode) -> NSHostingController<MenuBarView> {
@@ -180,7 +197,11 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func popover(for item: MenuBarItem) -> NSPopover {
-        item.group == .memory ? memoryPopover : cpuPopover
+        switch item {
+        case .gpu: return gpuPopover
+        case .memory, .network: return memoryPopover
+        case .cpu, .cpuUsage: return cpuPopover
+        }
     }
 
     private func symbolImage(systemName: String, pointSize: Double) -> NSImage? {
@@ -208,9 +229,9 @@ final class StatusBarController: NSObject, NSWindowDelegate {
 
         // cpuUsage and network are display-only items — no popover on click
         switch item {
-        case .memory, .cpu:
+        case .memory, .cpu, .gpu:
             toggle(popover: popover(for: item), for: statusItem(for: item))
-        case .network, .cpuUsage, .gpu:
+        case .network, .cpuUsage:
             break
         }
     }
@@ -221,10 +242,9 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         if popover.isShown {
             popover.close()
         } else {
-            if popover === memoryPopover {
-                cpuPopover.close()
-            } else {
-                memoryPopover.close()
+            // Close all other popovers
+            [memoryPopover, cpuPopover, gpuPopover].forEach { p in
+                if p !== popover { p.close() }
             }
 
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -234,6 +254,7 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     private func openSettings() {
         memoryPopover.performClose(nil)
         cpuPopover.performClose(nil)
+        gpuPopover.performClose(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         if settingsWindow == nil {
