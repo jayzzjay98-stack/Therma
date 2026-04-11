@@ -40,7 +40,7 @@ enum MenuBarItem: String, CaseIterable, Identifiable {
         case .network:  return "arrow.up.arrow.down"
         case .cpu:      return "thermometer.medium"
         case .cpuUsage: return "gauge.with.dots.needle.50percent"
-        case .gpu:      return "cpu"
+        case .gpu:      return "square.3.layers.3d"
         }
     }
 
