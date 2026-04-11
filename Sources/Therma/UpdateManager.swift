@@ -178,7 +178,7 @@ final class UpdateManager: ObservableObject {
     }
 
     private func verifySignature(of appURL: URL) async throws {
-        try await run("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", appURL.path])
+        try await run("/usr/bin/codesign", ["--verify", "--deep", "--strict", appURL.path])
     }
 
     private func writeInstallScript(replacing installURL: URL, with newApp: URL, workDir: URL) throws -> URL {
@@ -186,6 +186,7 @@ final class UpdateManager: ObservableObject {
         let parentURL = installURL.deletingLastPathComponent()
         let stagedURL = parentURL.appendingPathComponent("\(installURL.lastPathComponent).update")
         let backupURL = parentURL.appendingPathComponent("\(installURL.lastPathComponent).backup")
+        let pid = ProcessInfo.processInfo.processIdentifier
         let script = """
         #!/bin/bash
         set -euo pipefail
@@ -197,6 +198,7 @@ final class UpdateManager: ObservableObject {
         STAGED_PATH=\(shellEscape(stagedURL.path))
         BACKUP_PATH=\(shellEscape(backupURL.path))
         WORK_DIR=\(shellEscape(workDir.path))
+        PARENT_PID=\(pid)
 
         cleanup() {
           if [ -d "$BACKUP_PATH" ] && [ ! -d "$INSTALL_PATH" ]; then
@@ -206,7 +208,16 @@ final class UpdateManager: ObservableObject {
         }
         trap cleanup EXIT
 
-        sleep 1.5
+        # Wait for the app to exit cleanly
+        for i in {1..20}; do
+            if ! kill -0 $PARENT_PID 2>/dev/null; then
+                break
+            fi
+            sleep 0.5
+        done
+        # Force kill if still running
+        kill -9 $PARENT_PID 2>/dev/null || true
+
         rm -rf "$STAGED_PATH" "$BACKUP_PATH"
         # Use ditto which preserves the ad-hoc signature already applied before this script runs
         /usr/bin/ditto "$SOURCE_PATH" "$STAGED_PATH"
@@ -218,8 +229,10 @@ final class UpdateManager: ObservableObject {
         mv "$STAGED_PATH" "$INSTALL_PATH"
 
         trap - EXIT
-        rm -rf "$BACKUP_PATH" "$WORK_DIR"
         open "$INSTALL_PATH"
+        
+        # Clean up in background
+        rm -rf "$BACKUP_PATH" "$WORK_DIR" &
         """
 
         let scriptURL = workDir.appendingPathComponent("replace.sh")
@@ -235,8 +248,18 @@ final class UpdateManager: ObservableObject {
             let outputPipe = Pipe()
             p.standardOutput = outputPipe
             p.standardError  = outputPipe
+            
+            let q = DispatchQueue(label: "proc-output")
+            var outputData = Data()
+            outputPipe.fileHandleForReading.readabilityHandler = { handle in
+                let available = handle.availableData
+                guard !available.isEmpty else { return }
+                q.sync { outputData.append(available) }
+            }
+
             p.terminationHandler = { proc in
-                let out = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                outputPipe.fileHandleForReading.readabilityHandler = nil
+                let out = q.sync { String(data: outputData, encoding: .utf8) ?? "" }
                 if proc.terminationStatus == 0 {
                     cont.resume()
                 } else {
