@@ -249,17 +249,16 @@ final class UpdateManager: ObservableObject {
             p.standardOutput = outputPipe
             p.standardError  = outputPipe
             
-            let q = DispatchQueue(label: "proc-output")
-            var outputData = Data()
+            let outputBuffer = ProcessOutputBuffer()
             outputPipe.fileHandleForReading.readabilityHandler = { handle in
                 let available = handle.availableData
                 guard !available.isEmpty else { return }
-                q.sync { outputData.append(available) }
+                outputBuffer.append(available)
             }
 
             p.terminationHandler = { proc in
                 outputPipe.fileHandleForReading.readabilityHandler = nil
-                let out = q.sync { String(data: outputData, encoding: .utf8) ?? "" }
+                let out = outputBuffer.stringValue()
                 if proc.terminationStatus == 0 {
                     cont.resume()
                 } else {
@@ -367,6 +366,23 @@ final class UpdateManager: ObservableObject {
             .appendingPathComponent("MacOS", isDirectory: true)
             .appendingPathComponent(executableName)
         return fileManager.fileExists(atPath: executableURL.path)
+    }
+}
+
+private final class ProcessOutputBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var data = Data()
+
+    func append(_ newData: Data) {
+        lock.withLock {
+            data.append(newData)
+        }
+    }
+
+    func stringValue() -> String {
+        lock.withLock {
+            String(data: data, encoding: .utf8) ?? ""
+        }
     }
 }
 

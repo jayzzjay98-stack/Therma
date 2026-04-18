@@ -66,15 +66,25 @@ private enum HIDTemperatureBridge {
 
     @_silgen_name("IOHIDEventGetFloatValue")
     static func getFloatValue(_ event: OpaquePointer?, _ field: Int32) -> Double
+
+    static func release(_ pointer: OpaquePointer?) {
+        guard let pointer else { return }
+        Unmanaged<AnyObject>.fromOpaque(UnsafeRawPointer(pointer)).release()
+    }
 }
 
 final class CPUSensorProvider {
     private let snapshotBuilder: CPUSnapshotBuilder
     private var cachedBatteryCycleCount: Int?
     private var cycleCountRead = false
+    private var rawHIDClient: OpaquePointer?
 
     init(snapshotBuilder: CPUSnapshotBuilder = CPUSnapshotBuilder()) {
         self.snapshotBuilder = snapshotBuilder
+    }
+
+    deinit {
+        HIDTemperatureBridge.release(rawHIDClient)
     }
 
     func fetchSnapshot() -> CPUSnapshot {
@@ -90,13 +100,23 @@ final class CPUSensorProvider {
     }
 
     private func readSensors() -> [CPUTemperatureSensor] {
-        guard let rawClient = HIDTemperatureBridge.createClient(kCFAllocatorDefault) else { return [] }
-        _ = HIDTemperatureBridge.setMatching(rawClient, HIDTemperatureBridge.matching as CFDictionary)
+        guard let rawClient = temperatureClient() else { return [] }
 
         let client = unsafeBitCast(rawClient, to: IOHIDEventSystemClient.self)
         let services = IOHIDEventSystemClientCopyServices(client) as? [IOHIDServiceClient] ?? []
 
         return services.compactMap(reading(for:))
+    }
+
+    private func temperatureClient() -> OpaquePointer? {
+        if let rawHIDClient {
+            return rawHIDClient
+        }
+
+        guard let client = HIDTemperatureBridge.createClient(kCFAllocatorDefault) else { return nil }
+        _ = HIDTemperatureBridge.setMatching(client, HIDTemperatureBridge.matching as CFDictionary)
+        rawHIDClient = client
+        return client
     }
 
     private func reading(for service: IOHIDServiceClient) -> CPUTemperatureSensor? {
@@ -112,6 +132,7 @@ final class CPUSensorProvider {
             0,
             0
         ) else { return nil }
+        defer { HIDTemperatureBridge.release(event) }
 
         let celsius = HIDTemperatureBridge.getFloatValue(event, HIDTemperatureBridge.temperatureField)
         guard Self.isPlausibleTemperature(celsius) else { return nil }

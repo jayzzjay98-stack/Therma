@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+private struct StatusButtonSnapshot: Equatable {
+    let text: String
+    let iconSize: Double
+    let textSize: Double
+}
+
 @MainActor
 final class StatusBarController: NSObject, NSWindowDelegate {
     private let context: AppContext
@@ -25,7 +31,9 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     )
     private var settingsWindow: NSWindow?
     private var observers: [NSObjectProtocol] = []
-    private var lastStatusText: [MenuBarItem: String] = [:]
+    private var lastVisibility: [MenuBarItem: Bool] = [:]
+    private var lastButtonSnapshot: [MenuBarItem: StatusButtonSnapshot] = [:]
+    private var symbolImageCache: [String: NSImage] = [:]
 
     init(context: AppContext) {
         self.context = context
@@ -135,14 +143,22 @@ final class StatusBarController: NSObject, NSWindowDelegate {
 
     private func updateVisibility() {
         for (item, statusItem) in statusItems {
-            statusItem.isVisible = context.preferences.isVisible(item)
+            let isVisible = context.preferences.isVisible(item)
+            guard lastVisibility[item] != isVisible else { continue }
+            lastVisibility[item] = isVisible
+            statusItem.isVisible = isVisible
         }
     }
 
     private func updateButton(for item: MenuBarItem) {
         let text = statusText(for: item)
-        guard text != lastStatusText[item] else { return }
-        lastStatusText[item] = text
+        let snapshot = StatusButtonSnapshot(
+            text: text,
+            iconSize: context.preferences.iconSize(for: item),
+            textSize: context.preferences.textSize(for: item)
+        )
+        guard snapshot != lastButtonSnapshot[item] else { return }
+        lastButtonSnapshot[item] = snapshot
 
         guard let button = statusItem(for: item).button else { return }
 
@@ -152,10 +168,10 @@ final class StatusBarController: NSObject, NSWindowDelegate {
         } else {
             button.image = symbolImage(
                 systemName: item.icon,
-                pointSize: context.preferences.iconSize(for: item)
+                pointSize: snapshot.iconSize
             )
         }
-        button.attributedTitle = attributedTitle(text, size: context.preferences.textSize(for: item))
+        button.attributedTitle = attributedTitle(text, size: snapshot.textSize)
         button.imagePosition = .imageLeading
         button.toolTip = tooltip(for: item)
     }
@@ -205,9 +221,16 @@ final class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func symbolImage(systemName: String, pointSize: Double) -> NSImage? {
+        let cacheKey = "\(systemName)-\(String(format: "%.2f", pointSize))"
+        if let image = symbolImageCache[cacheKey] {
+            return image
+        }
+
         let configuration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)
-        return NSImage(systemSymbolName: systemName, accessibilityDescription: nil)?
+        let image = NSImage(systemSymbolName: systemName, accessibilityDescription: nil)?
             .withSymbolConfiguration(configuration)
+        symbolImageCache[cacheKey] = image
+        return image
     }
 
     private func attributedTitle(_ value: String, size: Double) -> NSAttributedString {

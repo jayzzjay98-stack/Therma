@@ -36,7 +36,6 @@ final class AppContext {
         refreshTickCount += 1
 
         systemMetricsMonitor.refresh()
-        gpuMonitor.refresh()
 
         if refreshTickCount % Int(Constants.backgroundRefreshInterval / Constants.systemMetricsRefreshInterval) == 0 {
             ramMonitor.refreshStatsOnly()
@@ -49,6 +48,10 @@ final class AppContext {
 
         if refreshTickCount % Int(Constants.cpuRefreshInterval / Constants.systemMetricsRefreshInterval) == 0 {
             cpuMonitor.refresh()
+        }
+
+        if refreshTickCount % Int(Constants.gpuRefreshInterval / Constants.systemMetricsRefreshInterval) == 0 {
+            gpuMonitor.refresh()
         }
 
         NotificationCenter.default.post(name: .thermaStatusBarDidChange, object: nil)

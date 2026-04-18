@@ -14,6 +14,7 @@ enum Constants {
     static let backgroundRefreshInterval: TimeInterval = 2.0
     static let foregroundRefreshInterval: TimeInterval = 3.0  // slower than background to ease CPU
     static let cpuRefreshInterval: TimeInterval        = 5.0
+    static let gpuRefreshInterval: TimeInterval        = 2.0
     // Lightweight metrics (CPU%, network) — fast kernel reads, safe at 1s
     static let systemMetricsRefreshInterval: TimeInterval = 1.0
     static let cleanTimeoutSeconds: TimeInterval       = 25.0
